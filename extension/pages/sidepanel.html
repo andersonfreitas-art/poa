@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Painel POA</title>
+  <link rel="stylesheet" href="../styles/sidepanel.css">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <header>
+    <div class="logo-area">
+      <h1>🚀 POA</h1>
+      <span>Professor Online Automático</span>
+    </div>
+  </header>
+
+  <main>
+    <section>
+      <h2>Acesso Rápido</h2>
+      <div class="grid-menu">
+        
+        <a href="https://professor.seduc.ce.gov.br/" target="_blank" class="card-link">
+          <div class="icon-box green">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
+          </div>
+          <span>Professor Online</span>
+        </a>
+
+        <a href="https://diretordeturma.seduc.ce.gov.br/" target="_blank" class="card-link">
+          <div class="icon-box orange">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+          </div>
+          <span>SIGE PPDT</span>
+        </a>
+
+        <a href="https://drive.google.com/" target="_blank" class="card-link">
+          <div class="icon-box blue">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 13 13"></polyline><polyline points="17 21 17 13 23 13"></polyline></svg>
+          </div>
+          <span>Meu Drive</span>
+        </a>
+
+        <a href="https://mail.google.com/" target="_blank" class="card-link">
+          <div class="icon-box red">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+          </div>
+          <span>E-mail</span>
+        </a>
+
+      </div>
+    </section>
+
+    <hr class="divider">
+
+    <section>
+      <h2>Ferramentas de Página</h2>
+      
+      <div class="input-group">
+        <label for="data-area">Área de Transferência (Ctrl+V / Ctrl+C)</label>
+        <textarea id="data-area" rows="4" placeholder="Cole aqui as informações que serão lançadas (notas, faltas, etc)."></textarea>
+      </div>
+
+      <div class="actions-grid">
+        <button id="btn-lancar-notas" class="action-btn" aria-label="Lançar Notas">
+          <span class="status-led" id="led-notas"></span>
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+          Lançar Notas
+        </button>
+
+        <button id="btn-lancar-frequencia" class="action-btn" aria-label="Lançar Frequência">
+          <span class="status-led" id="led-frequencia"></span>
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><polyline points="16 11 18 13 22 9"></polyline></svg>
+          Lançar Faltas
+        </button>
+
+        <button id="btn-verificar-pendencias" class="action-btn secondary" aria-label="Verificar Pendências">
+          <span class="status-led" id="led-pendencias"></span>
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+          Verificar Pendências
+        </button>
+
+        <button id="btn-lancar-nota-sisedu" class="action-btn" aria-label="Lançar Nota SISEDU">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+          Lançar Nota (SISEDU)
+        </button>
+      </div>
+    </section>
+
+  </main>
+
+  <footer>
+    <p>&copy; 2025 POA v0.1 - Anderson Freitas</p>
+    <p>Este projeto não possui vínculo oficial com a SEDUC/CE.</p>
+  </footer>
+
+  <div id="toast-container"></div>
+
+  <script src="../scripts/sidepanel.js"></script>
+</body>
+</html>
