@@ -60,6 +60,16 @@
       <div class="input-group">
         <label for="data-area">Área de Transferência (Ctrl+V / Ctrl+C)</label>
         <textarea id="data-area" rows="4" placeholder="Cole aqui as informações que serão lançadas (notas, faltas, etc)."></textarea>
+        <div class="clipboard-actions">
+          <button id="btn-paste-clip" class="clip-btn" title="Colar da área de transferência">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
+            Colar
+          </button>
+          <button id="btn-copy-clip" class="clip-btn" title="Copiar conteúdo">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+            Copiar
+          </button>
+        </div>
       </div>
 
       <div class="actions-grid">

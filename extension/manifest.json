@@ -14,7 +14,8 @@
   },
 
   "permissions": [
-    "sidePanel"
+    "sidePanel",
+    "clipboardRead"
   ],
 
   "host_permissions": [

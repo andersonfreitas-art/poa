@@ -9,6 +9,41 @@
 document.addEventListener('DOMContentLoaded', () => {
   const textArea = document.getElementById('data-area');
 
+  // --- Botões de Clipboard ---
+  
+  // Botão Copiar
+  configurarBotao('btn-copy-clip', () => {
+    if (!textArea.value) {
+      mostrarToast("A área de texto está vazia.", "info");
+      return;
+    }
+    copiarParaAreaTransferencia(textArea.value, textArea);
+    mostrarToast("Conteúdo copiado!", "success");
+  });
+
+  // Botão Colar
+  configurarBotao('btn-paste-clip', async () => {
+    try {
+      // Com a permissão "clipboardRead", isso agora funcionará na extensão!
+      const texto = await navigator.clipboard.readText();
+      
+      if (texto) {
+        textArea.value = texto;
+        mostrarToast("Conteúdo colado!", "success");
+        textArea.focus(); // Importante para UX
+        // Opcional: Disparar evento de input se houver lógica que dependa disso
+        textArea.dispatchEvent(new Event('input')); 
+      } else {
+        mostrarToast("Área de transferência vazia.", "info");
+      }
+    } catch (err) {
+      console.warn('Erro de clipboard:', err);
+      // Fallback caso o navegador ainda bloqueie
+      mostrarToast("Erro ao colar. Use Ctrl+V.", "error");
+      textArea.focus();
+    }
+  });
+
   // Inicializa verificação de LEDs ao abrir o painel
   atualizarStatusLeds();
 
