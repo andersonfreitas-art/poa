@@ -9,7 +9,7 @@
 document.addEventListener('DOMContentLoaded', () => {
   const textArea = document.getElementById('data-area');
 
-  // --- Botões de Clipboard ---
+  // --- Botões de Clipboard e Ferramentas ---
   
   // Botão Copiar
   configurarBotao('btn-copy-clip', () => {
@@ -24,30 +24,37 @@ document.addEventListener('DOMContentLoaded', () => {
   // Botão Colar
   configurarBotao('btn-paste-clip', async () => {
     try {
-      // Com a permissão "clipboardRead", isso agora funcionará na extensão!
       const texto = await navigator.clipboard.readText();
-      
       if (texto) {
         textArea.value = texto;
         mostrarToast("Conteúdo colado!", "success");
-        textArea.focus(); // Importante para UX
-        // Opcional: Disparar evento de input se houver lógica que dependa disso
+        textArea.focus();
         textArea.dispatchEvent(new Event('input')); 
       } else {
         mostrarToast("Área de transferência vazia.", "info");
       }
     } catch (err) {
       console.warn('Erro de clipboard:', err);
-      // Fallback caso o navegador ainda bloqueie
       mostrarToast("Erro ao colar. Use Ctrl+V.", "error");
       textArea.focus();
     }
   });
 
+  // Botão Limpar (Manual)
+  configurarBotao('btn-clear-clip', () => {
+    if (!textArea.value) {
+      return; // Nada a limpar
+    }
+    textArea.value = '';
+    textArea.focus();
+    mostrarToast("Área de texto limpa.", "info");
+  });
+
+
   // Inicializa verificação de LEDs ao abrir o painel
   atualizarStatusLeds();
 
-  // --- Listeners de Botões ---
+  // --- Listeners de Botões Principais ---
 
   // 1. Lançar Notas
   configurarBotao('btn-lancar-notas', async () => {
@@ -58,8 +65,14 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
     mostrarToast("Processando notas...", "info");
+    
     const resposta = await enviarComando('preencher_notas', dados);
     processarResposta(resposta);
+    
+    // Auto-limpeza se houver sucesso
+    if (verificarSucesso(resposta)) {
+      textArea.value = '';
+    }
   });
 
   // 2. Lançar Frequência
@@ -71,8 +84,14 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
     mostrarToast("Processando frequência...", "info");
+    
     const resposta = await enviarComando('preencher_frequencia', dados);
     processarResposta(resposta);
+
+    // Auto-limpeza se houver sucesso
+    if (verificarSucesso(resposta)) {
+      textArea.value = '';
+    }
   });
 
   // 3. Verificar Pendências
@@ -113,16 +132,27 @@ function copiarParaAreaTransferencia(texto, elementoInput) {
 }
 
 /**
- * Processa a resposta vinda do Content Script.
- * Agora suporta tanto um Objeto único quanto um Array de Objetos (múltiplos toasts).
+ * Verifica se a resposta contém alguma indicação de sucesso
+ * para autorizar a limpeza automática da área de texto.
  */
+function verificarSucesso(resposta) {
+  if (!resposta) return false;
+  
+  // Se for array (múltiplas mensagens), procura por pelo menos um sucesso
+  if (Array.isArray(resposta)) {
+    return resposta.some(item => item.type === 'success');
+  }
+  
+  // Se for objeto único
+  return resposta.type === 'success';
+}
+
 function processarResposta(resposta) {
   if (!resposta) return;
 
-  // Se for um Array (várias mensagens: sucesso + info)
+  // Se for um Array (várias mensagens)
   if (Array.isArray(resposta)) {
     resposta.forEach((item, index) => {
-      // Adiciona um pequeno delay para não aparecerem todos exatamente ao mesmo milissegundo
       setTimeout(() => {
         if (item.message) mostrarToast(item.message, item.type);
       }, index * 300); 
@@ -150,7 +180,6 @@ function mostrarToast(mensagem, tipo = 'info') {
   
   container.appendChild(toast);
   
-  // Força Reflow
   void toast.offsetWidth; 
   toast.classList.add('show');
 
@@ -159,7 +188,7 @@ function mostrarToast(mensagem, tipo = 'info') {
     setTimeout(() => {
       if (container.contains(toast)) container.removeChild(toast);
     }, 300);
-  }, 4000); // Aumentei um pouco (4s) para dar tempo de ler se houver dois toasts
+  }, 4000);
 }
 
 
