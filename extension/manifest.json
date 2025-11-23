@@ -45,7 +45,8 @@
       "matches": [
         "https://professor.seduc.ce.gov.br/avaliacao_nota*",
         "https://professor.seduc.ce.gov.br/frequencia_chamada*",
-        "https://professor.seduc.ce.gov.br/relatorio_aulas_dadas*"
+        "https://professor.seduc.ce.gov.br/relatorio_aulas_dadas*",
+        "https://sisedu.seduc.ce.gov.br/cadastrar_gabarito*"
       ],
       "js": [
         "scripts/content.js"
