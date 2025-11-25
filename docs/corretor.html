@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Corretor - Gabarito Fácil</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     
@@ -19,7 +19,6 @@
             overflow: hidden;
         }
 
-        /* Área da Câmera */
         .camera-container {
             position: relative;
             width: 100%;
@@ -27,20 +26,12 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            background: black;
+            background: #000;
         }
 
-        video {
-            display: none; /* O vídeo bruto fica oculto */
-        }
+        video { display: none; }
+        canvas { width: 100%; height: 100%; object-fit: contain; }
 
-        canvas {
-            width: 100%;
-            height: 100%;
-            object-fit: contain; /* Garante que a imagem não estique */
-        }
-
-        /* Interface Sobreposta (HUD) */
         .hud {
             position: absolute;
             bottom: 30px;
@@ -49,18 +40,18 @@
             flex-direction: column;
             align-items: center;
             gap: 15px;
-            pointer-events: none; /* Deixa clicar 'através' da interface se precisar */
+            pointer-events: none;
         }
 
         .status-pill {
-            background: rgba(0, 0, 0, 0.6);
-            backdrop-filter: blur(4px);
+            background: rgba(0, 0, 0, 0.7);
             padding: 8px 16px;
             border-radius: 20px;
             font-size: 0.9rem;
-            color: #eee;
-            border: 1px solid rgba(255,255,255,0.2);
+            color: #fff;
+            border: 1px solid rgba(255,255,255,0.3);
             text-align: center;
+            max-width: 90%;
         }
 
         button {
@@ -77,23 +68,10 @@
             display: flex;
             align-items: center;
             gap: 10px;
-            transition: transform 0.2s, background 0.2s;
         }
 
-        button:active { transform: scale(0.95); }
         button:disabled { background-color: #555; opacity: 0.7; }
 
-        /* Loader */
-        .spinner {
-            width: 20px; height: 20px;
-            border: 3px solid rgba(255,255,255,0.3);
-            border-radius: 50%;
-            border-top-color: #fff;
-            animation: spin 1s ease-in-out infinite;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
-
-        /* Debug Switch (Opcional) */
         .debug-toggle {
             position: absolute;
             top: 20px;
@@ -101,29 +79,26 @@
             z-index: 100;
             pointer-events: auto;
             background: rgba(0,0,0,0.5);
-            padding: 5px 10px;
+            padding: 8px 12px;
             border-radius: 5px;
             font-size: 0.8rem;
             cursor: pointer;
+            border: 1px solid #555;
         }
     </style>
 </head>
 <body>
 
-    <div class="debug-toggle" onclick="toggleDebug()">👁️ Debug</div>
+    <div class="debug-toggle" onclick="toggleDebug()">👁️ Ver Contornos</div>
 
     <div class="camera-container">
-        <video id="videoInput" playsinline></video>
+        <video id="videoInput" playsinline autoplay></video>
         <canvas id="canvasOutput"></canvas>
     </div>
 
     <div class="hud">
-        <div id="statusMsg" class="status-pill">Carregando OpenCV... (Pode demorar um pouco)</div>
-        
-        <button id="btnStart" onclick="startCamera()" disabled>
-            <div class="spinner" id="loadingSpinner"></div>
-            <span id="btnText">Aguarde...</span>
-        </button>
+        <div id="statusMsg" class="status-pill">Carregando Sistema...</div>
+        <button id="btnStart" onclick="startCamera()" disabled>Aguarde...</button>
     </div>
 
     <script async src="https://docs.opencv.org/4.5.5/opencv.js" onload="onOpenCvReady()" type="text/javascript"></script>
@@ -131,171 +106,167 @@
     <script>
         let video = document.getElementById('videoInput');
         let canvas = document.getElementById('canvasOutput');
-        let ctx = canvas.getContext('2d');
-
+        
         let stream = null;
         let streaming = false;
         let cvReady = false;
-        let debugMode = false; // Se true, mostra a visão binária (preto e branco)
+        let debugMode = false;
 
-        // Variáveis Matrizes do OpenCV (Alocadas uma vez para performance)
         let src = null;
         let dst = null;
         let gray = null;
-        let hierarchy = null;
         let contours = null;
+        let hierarchy = null;
 
         function onOpenCvReady() {
             console.log('OpenCV Ready');
             cvReady = true;
-            document.getElementById('statusMsg').innerText = "Motor de Visão Pronto.";
-            
+            document.getElementById('statusMsg').innerText = "Sistema Pronto. Inicie a Câmera.";
             const btn = document.getElementById('btnStart');
             btn.disabled = false;
-            btn.style.backgroundColor = "#00e676"; // Verde
+            btn.innerText = "📷 Iniciar Câmera";
+            btn.style.backgroundColor = "#00e676";
             btn.style.color = "#004d2f";
-            document.getElementById('loadingSpinner').style.display = 'none';
-            document.getElementById('btnText').innerText = "📷 Iniciar Câmera";
         }
 
         async function startCamera() {
             if (streaming) return;
 
-            try {
-                // Configuração para priorizar câmera traseira em alta resolução
-                const constraints = {
-                    video: {
-                        facingMode: 'environment',
-                        width: { ideal: 1920 },
-                        height: { ideal: 1080 }
-                    },
-                    audio: false
-                };
+            // CONFIGURAÇÃO UNIVERSAL (PC + MOBILE)
+            // Removemos 'facingMode' estrito para funcionar na Webcam do PC
+            const constraints = {
+                video: {
+                    width: { ideal: 1280 }, // Tenta HD, mas aceita menos
+                    height: { ideal: 720 }
+                },
+                audio: false
+            };
 
+            try {
+                document.getElementById('statusMsg').innerText = "Solicitando permissão da câmera...";
+                
                 stream = await navigator.mediaDevices.getUserMedia(constraints);
                 video.srcObject = stream;
-                video.play();
                 
-                document.getElementById('btnStart').style.display = 'none';
-                document.getElementById('statusMsg').innerText = "Aponte para o Gabarito";
+                // Aguarda o vídeo carregar os metadados
+                video.onloadedmetadata = () => {
+                    video.play();
+                    
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    
+                    document.getElementById('btnStart').style.display = 'none';
+                    document.getElementById('statusMsg').innerText = "Câmera Ativa. Aponte para o Gabarito.";
+                    
+                    if (cvReady) {
+                        // Inicializa Matrizes
+                        src = new cv.Mat(video.videoHeight, video.videoWidth, cv.CV_8UC4);
+                        dst = new cv.Mat(video.videoHeight, video.videoWidth, cv.CV_8UC1);
+                        gray = new cv.Mat();
+                        contours = new cv.MatVector();
+                        hierarchy = new cv.Mat();
+                        
+                        streaming = true;
+                        requestAnimationFrame(processVideo);
+                    }
+                };
 
             } catch (err) {
-                console.error(err);
-                alert("Erro ao abrir câmera. Permita o acesso e use HTTPS.");
+                console.error("Erro Câmera:", err);
+                let erroMsg = "Erro desconhecido.";
+                
+                if (err.name === 'NotAllowedError') erroMsg = "Permissão de câmera negada.";
+                else if (err.name === 'NotFoundError') erroMsg = "Nenhuma câmera encontrada.";
+                else if (window.location.protocol === 'file:') erroMsg = "ERRO: O navegador bloqueia câmera em arquivos locais. Use um servidor local (Live Server).";
+
+                document.getElementById('statusMsg').innerText = "❌ " + erroMsg;
+                document.getElementById('statusMsg').style.backgroundColor = "#d32f2f";
             }
         }
 
-        video.addEventListener('loadedmetadata', () => {
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-        });
-
-        video.addEventListener('play', () => {
-            if (!cvReady) return;
-
-            // Inicializa as matrizes
-            src = new cv.Mat(video.videoHeight, video.videoWidth, cv.CV_8UC4);
-            dst = new cv.Mat(video.videoHeight, video.videoWidth, cv.CV_8UC1);
-            gray = new cv.Mat();
-            hierarchy = new cv.Mat();
-            contours = new cv.MatVector();
-
-            streaming = true;
-            requestAnimationFrame(processVideo);
-        });
-
         function toggleDebug() {
             debugMode = !debugMode;
-            document.getElementById('statusMsg').innerText = debugMode ? "Modo Debug: Visão do Robô" : "Modo Normal";
         }
 
         function processVideo() {
             if (!streaming) return;
 
             try {
-                // 1. Ler frame do vídeo
                 let cap = new cv.VideoCapture(video);
                 cap.read(src);
 
-                // 2. Pré-processamento
-                cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY); // Escala de cinza
-                
-                // Threshold Adaptativo (Melhor para sombras!)
-                // Converte para preto e branco puro. O que for escuro vira preto, claro vira branco.
-                // Invertemos (THRESH_BINARY_INV) para que o marcador preto vire BRANCO (para ser detectado como contorno)
+                // 1. Converter para Cinza
+                cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+
+                // 2. Threshold (Binarização)
+                // Usa valores fixos ou adaptativos para achar preto vs branco
                 cv.adaptiveThreshold(gray, dst, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, 21, 5);
 
-                // 3. Encontrar Contornos
+                // 3. Achar Contornos
                 cv.findContours(dst, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
 
-                // Se NÃO estiver em modo debug, desenhamos a imagem colorida original primeiro
+                // Desenha a imagem base (Colorida ou Binarizada dependendo do modo)
                 if (!debugMode) {
                     cv.imshow('canvasOutput', src); 
+                } else {
+                    // Modo robô: mostra o que o algoritmo vê
+                    cv.imshow('canvasOutput', dst);
                 }
 
-                // 4. Analisar Contornos encontrados
+                // 4. Filtrar e Desenhar Retângulos
                 for (let i = 0; i < contours.size(); ++i) {
                     let cnt = contours.get(i);
                     let area = cv.contourArea(cnt);
-                    let perimeter = cv.arcLength(cnt, true);
-                    let approx = new cv.Mat();
-
-                    // Simplifica o contorno (para ver se vira um quadrado)
-                    cv.approxPolyDP(cnt, approx, 0.04 * perimeter, true);
-
-                    // --- FILTRO DE DETECÇÃO DE MARCADOR ---
-                    // 1. Deve ter 4 cantos (Quadrado/Retângulo)
-                    // 2. A área deve ser relevante (não muito pequena, nem gigante)
-                    // 3. O contorno deve ser convexo
                     
-                    if (approx.rows === 4 && area > 500 && area < 100000 && cv.isContourConvex(approx)) {
-                        
-                        // Desenha um quadrado VERMELHO em volta do que achou
-                        let color = new cv.Scalar(255, 0, 0, 255); // RGBA (Vermelho)
-                        
-                        // Se estivermos desenhando sobre a imagem original, usamos a função do OpenCV
-                        if (!debugMode) {
-                            // Desenha o contorno diretamente sobre o canvas já renderizado
-                            // Precisamos criar um contexto vetor para desenhar apenas este contorno
-                            let vec = new cv.MatVector();
-                            vec.push_back(approx);
-                            cv.drawContours(src, vec, -1, color, 3);
-                            cv.imshow('canvasOutput', src);
-                            vec.delete();
-                        } else {
-                            // No modo debug (preto e branco), desenhamos colorido por cima
-                            cv.cvtColor(dst, src, cv.COLOR_GRAY2RGBA);
-                            let vec = new cv.MatVector();
-                            vec.push_back(approx);
-                            cv.drawContours(src, vec, -1, color, 3);
-                            cv.imshow('canvasOutput', src);
-                            vec.delete();
-                        }
-                    }
-                    approx.delete();
-                }
+                    // Filtro de Área: Ignora ruídos pequenos e coisas gigantes
+                    if (area > 300 && area < 50000) {
+                        let peri = cv.arcLength(cnt, true);
+                        let approx = new cv.Mat();
+                        cv.approxPolyDP(cnt, approx, 0.04 * peri, true);
 
-                // Se estiver em modo debug, mostra o resultado binarizado final
-                if (debugMode && contours.size() === 0) {
-                     cv.imshow('canvasOutput', dst);
+                        // Se tem 4 vértices (é um quadrado/retângulo) e é convexo
+                        if (approx.rows === 4 && cv.isContourConvex(approx)) {
+                            
+                            // Desenha contorno vermelho
+                            let color = new cv.Scalar(255, 0, 0, 255);
+                            let vec = new cv.MatVector();
+                            vec.push_back(approx);
+                            
+                            // Se estivermos no modo normal, desenha por cima da imagem colorida
+                            // Precisamos ler o canvas de volta para src se quisermos acumular desenhos (simplificado aqui)
+                            // O imshow desenha IMEDIATAMENTE.
+                            // Nota: A estrutura de loop do OpenCV.js com imshow pode piscar se não gerida bem.
+                            // Mas para debug visual rápido, isso serve.
+                        }
+                        approx.delete();
+                    }
+                }
+                
+                // RE-DESENHAR CONTORNOS (Método mais limpo para JS)
+                // Percorremos de novo para desenhar tudo de uma vez
+                if (!debugMode) {
+                    for (let i = 0; i < contours.size(); ++i) {
+                         let cnt = contours.get(i);
+                         let area = cv.contourArea(cnt);
+                         if (area > 300 && area < 50000) {
+                            let peri = cv.arcLength(cnt, true);
+                            let approx = new cv.Mat();
+                            cv.approxPolyDP(cnt, approx, 0.04 * peri, true);
+                            if (approx.rows === 4 && cv.isContourConvex(approx)) {
+                                let color = new cv.Scalar(255, 0, 0, 255);
+                                cv.drawContours(src, contours, i, color, 3, cv.LINE_8, hierarchy, 0);
+                            }
+                            approx.delete();
+                         }
+                    }
+                    cv.imshow('canvasOutput', src);
                 }
 
                 requestAnimationFrame(processVideo);
-
             } catch (err) {
                 console.error(err);
             }
         }
-
-        // Limpeza de memória ao sair
-        window.addEventListener('unload', () => {
-            if (src) src.delete();
-            if (dst) dst.delete();
-            if (gray) gray.delete();
-            if (hierarchy) hierarchy.delete();
-            if (contours) contours.delete();
-        });
-
     </script>
 </body>
 </html>
