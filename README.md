@@ -1,6 +1,6 @@
 # POA - Professor Online Automático 🚀
 
-![Versão](https://img.shields.io/badge/versão-0.1-green) ![Estado](https://img.shields.io/badge/status-em_desenvolvimento-orange) ![Licença](https://img.shields.io/badge/license-MIT-blue)
+![Versão](https://img.shields.io/badge/versão-0.5-green) ![Estado](https://img.shields.io/badge/status-em_desenvolvimento-orange) ![Licença](https://img.shields.io/badge/license-MIT-blue)
 
 Uma extensão de navegador desenvolvida para otimizar o tempo pedagógico e de planejamento da comunidade escolar, oferecendo ferramentas de gestão e automatizando processos no Portal Professor Online e outros sistemas da rede educacional do Estado do Ceará.
 
