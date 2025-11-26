@@ -4,6 +4,7 @@
 /**
  * POA - Professor Online Automático
  * Script de conteúdo responsável por manipular o DOM da página da SEDUC/SISEDU.
+ * Versão: 2.1 (Mensagens integradas ao Sidepanel)
  */
 
 console.log("POA: Content script ativo.");
@@ -12,30 +13,39 @@ console.log("POA: Content script ativo.");
 // LISTENER PRINCIPAL
 // ===================================================================
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  let resultado = { type: 'error', message: 'Erro desconhecido.' };
+  let resultado = { type: 'info', message: 'Processando...' };
 
   try {
     switch (request.action) {
       case 'preencher_notas':
+        // Agora capturamos o retorno da função
         resultado = preencherNotas(request.dados);
         break;
+
       case 'preencher_frequencia':
+        // Capturamos o retorno da função (msg de sucesso ou aviso)
         resultado = lancarFaltas(request.dados);
         break;
+
       case 'verificar_pendencias':
-        resultado = verificarPendencias();
-        break;
+        const pendencias = verificarPendencias();
+        sendResponse({ dados: pendencias }); 
+        return true; 
+
       case 'preencher_sisedu':
         resultado = preencherSisedu(request.dados);
         break;
+
       default:
-        resultado = { type: 'error', message: `Ação não reconhecida: ${request.action}` };
+        console.warn(`POA: Ação não reconhecida: ${request.action}`);
+        resultado = { type: 'error', message: 'Ação desconhecida.' };
     }
   } catch (e) {
     console.error("POA Error:", e);
-    resultado = { type: 'error', message: 'Erro interno no script de automação.' };
+    resultado = { type: 'error', message: "Erro interno: " + e.message };
   }
   
+  // Envia a resposta (objeto com type e message) de volta para o Sidepanel
   sendResponse(resultado);
   return true;
 });
@@ -46,21 +56,23 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 // ===================================================================
 
 function dispararEventosDeMudanca(elemento) {
-  ['change', 'input', 'blur'].forEach(evento => {
+  ['input', 'change', 'blur'].forEach(evento => {
     elemento.dispatchEvent(new Event(evento, { bubbles: true }));
   });
 }
 
-// Remove acentos, espaços extras e coloca em maiúsculo para comparação segura
 function normalizarTexto(texto) {
   if (!texto) return "";
-  return texto
-    .toString()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "") // Remove acentos
-    .replace(/\s+/g, " ")             // Remove espaços duplos
-    .trim()
-    .toUpperCase();
+  return texto.toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ").trim().toUpperCase();
+}
+
+function getDiaMes(dataStr) {
+  if (!dataStr) return "";
+  const partes = dataStr.trim().split('/');
+  if (partes.length < 2) return dataStr.trim();
+  const dia = partes[0].padStart(2, '0');
+  const mes = partes[1].padStart(2, '0');
+  return `${dia}/${mes}`;
 }
 
 
@@ -68,7 +80,9 @@ function normalizarTexto(texto) {
 // 1. MÓDULO DE NOTAS
 // ===================================================================
 function preencherNotas(dadosTexto) {
-  if (!dadosTexto) return { type: 'error', message: 'Nenhuma informação recebida.' };
+  if (!dadosTexto) {
+    return { type: 'error', message: "Nenhum dado recebido." };
+  }
 
   const notasMap = new Map();
   const linhas = dadosTexto.trim().split("\n");
@@ -76,80 +90,121 @@ function preencherNotas(dadosTexto) {
   linhas.forEach((linha) => {
     const colunas = linha.split("\t");
     if (colunas.length >= 2) {
-      const matricula = colunas[0].trim();
-      const nota = colunas[1].trim().replace(",", ".");
-      if (matricula && nota) {
+      const matricula = colunas[colunas.length - 2].trim();
+      const nota = colunas[colunas.length - 1].trim().replace(",", ".");
+      if (matricula.match(/^\d+$/)) {
         notasMap.set(matricula, nota);
       }
     }
   });
 
-  if (notasMap.size === 0) return { type: 'error', message: 'Dados inválidos.' };
-
   let processados = 0;
-  const alunosNaPagina = document.querySelectorAll(".div-card.Aligner");
+  const inputs = document.querySelectorAll("input[name^='nota']");
 
-  alunosNaPagina.forEach((alunoDiv) => {
-    const matriculaElement = alunoDiv.querySelector("small[data-item-subtitle]");
-    const notaInput = alunoDiv.querySelector("input[data-nota]");
-
-    if (matriculaElement && notaInput) {
-      const matriculaPagina = matriculaElement.textContent.trim();
-      if (notasMap.has(matriculaPagina)) {
-        notaInput.value = notasMap.get(matriculaPagina);
-        dispararEventosDeMudanca(notaInput);
+  inputs.forEach((input) => {
+    const match = input.name.match(/\[(\d+)\]/);
+    if (match) {
+      const matricula = match[1];
+      if (notasMap.has(matricula)) {
+        input.value = notasMap.get(matricula).replace(".", ",");
+        dispararEventosDeMudanca(input);
+        input.style.backgroundColor = "#e8f5e9";
         processados++;
-        notaInput.style.backgroundColor = "#d4edda";
-        notaInput.style.transition = "background 0.5s";
       }
     }
   });
 
-  const mensagens = [];
   if (processados > 0) {
-    const snack = document.getElementById("snack");
-    if (snack) snack.style.display = "block";
-    mensagens.push({ type: 'success', message: `${processados} notas preenchidas!` });
+    // Retorna objeto de sucesso para o Sidepanel
+    return { type: 'success', message: `${processados} notas preenchidas!` };
   } else {
-    return { type: 'info', message: 'Nenhuma matrícula encontrada.' };
+    return { type: 'info', message: "Nenhuma matrícula correspondente encontrada." };
   }
-
-  return mensagens;
 }
 
 
 // ===================================================================
-// 2. MÓDULO DE FREQUÊNCIA
+// 2. MÓDULO DE FREQUÊNCIA INTELIGENTE
 // ===================================================================
 function lancarFaltas(dadosTexto) {
-  const matriculasFaltosos = dadosTexto.split(/[\n,]+/).map(m => m.trim()).filter(m => m);
+  if (!dadosTexto) {
+    return { type: 'error', message: "Cole os dados no painel primeiro." };
+  }
 
-  if (matriculasFaltosos.length === 0) return { type: 'error', message: 'Área de texto vazia.' };
+  // A. Identificar a data da página atual
+  const inputData = document.getElementById("data");
+  if (!inputData) {
+    return { type: 'error', message: "Campo de data não encontrado na página." };
+  }
+  
+  const dataPaginaRaw = inputData.value.trim();
+  const diaMesPagina = getDiaMes(dataPaginaRaw);
 
-  let faltasLancadas = 0;
-  let naoEncontradas = 0;
+  console.log(`POA: Data Página: ${diaMesPagina}`);
 
-  matriculasFaltosos.forEach((matricula) => {
-    const matriculaSegura = matricula.replace(/["\\]/g, ''); 
-    const alunoPanel = document.querySelector(`.panel[data-aluno="${matriculaSegura}"]`);
-    
-    if (alunoPanel) {
-      const faltaButton = alunoPanel.querySelector(".toggle-off");
-      if (faltaButton) {
-        faltaButton.click();
-        faltasLancadas++;
+  // B. Processar o texto colado
+  const faltososDoDia = new Set();
+  const linhas = dadosTexto.trim().split("\n");
+
+  linhas.forEach(linha => {
+    let partes = linha.trim().split(/\t+/); 
+    if (partes.length < 2) partes = linha.trim().split(";");
+    if (partes.length < 2) partes = linha.trim().split(" ");
+
+    if (partes.length >= 2) {
+      const dataLinhaRaw = partes[0].trim();
+      const matricula = partes[partes.length - 1].trim(); 
+
+      if (getDiaMes(dataLinhaRaw) === diaMesPagina) {
+        faltososDoDia.add(matricula);
       }
-    } else {
-      naoEncontradas++;
     }
   });
 
-  const mensagens = [];
-  if (faltasLancadas > 0) mensagens.push({ type: 'success', message: `${faltasLancadas} faltas lançadas!` });
-  if (naoEncontradas > 0) mensagens.push({ type: 'info', message: `${naoEncontradas} não encontradas.` });
-  if (mensagens.length === 0) return { type: 'info', message: 'Nenhuma ação realizada.' };
+  // C. Aplicar na Tela
+  let alteracoes = 0;
+  const paineisAlunos = document.querySelectorAll("div[data-aluno]");
 
-  return mensagens;
+  paineisAlunos.forEach(painel => {
+    const matriculaAluno = painel.getAttribute("data-aluno");
+    const checkbox = painel.querySelector("input[type='checkbox']");
+    
+    if (checkbox) {
+      const toggleVisual = painel.querySelector(".toggle");
+      const isMarcadoPresente = checkbox.checked; // true = Presença
+      const deveFaltar = faltososDoDia.has(matriculaAluno);
+
+      const clicar = () => {
+        if (toggleVisual) toggleVisual.click();
+        else checkbox.click();
+      };
+
+      if (deveFaltar && isMarcadoPresente) {
+        clicar(); // Marca FALTA
+        alteracoes++;
+      } 
+      else if (!deveFaltar && !isMarcadoPresente) {
+        clicar(); // Corrige para PRESENÇA
+      }
+    }
+  });
+
+  if (alteracoes > 0) {
+    return { 
+      type: 'success', 
+      message: `${alteracoes} faltas lançadas para o dia ${diaMesPagina}.` 
+    };
+  } else if (faltososDoDia.size > 0) {
+    return { 
+      type: 'info', 
+      message: `Dia ${diaMesPagina}: Alunos já estavam com falta.` 
+    };
+  } else {
+    return { 
+      type: 'info', 
+      message: `Nenhuma falta encontrada para ${diaMesPagina} na lista.` 
+    };
+  }
 }
 
 
@@ -163,6 +218,7 @@ function verificarPendencias() {
   todasAsLinhas.forEach((linha) => {
     const celulas = linha.querySelectorAll("td");
     if (celulas.length < 6) return;
+    
     const situacao = celulas[5].textContent.trim();
     if (situacao === "Prevista") {
       const dataCompleta = celulas[0].textContent.trim();
@@ -170,74 +226,54 @@ function verificarPendencias() {
     }
   });
 
-  const lista = Array.from(datasPendentes);
-  if (lista.length === 0) return { type: 'success', message: 'Nenhuma pendência!', dados: null };
-  
-  return { type: 'info', message: `${lista.length} dias pendentes.`, dados: lista.join(", ") };
+  const lista = Array.from(datasPendentes).join(", ");
+  return lista || "Nenhuma pendência encontrada.";
 }
 
 
 // ===================================================================
-// 4. MÓDULO SISEDU (BUSCA POR NOME)
+// 4. MÓDULO SISEDU
 // ===================================================================
 function preencherSisedu(dadosTexto) {
   if (!dadosTexto) return { type: 'error', message: "Cole o gabarito no painel." };
 
-  // 1. Identificar o NOME do aluno na página
   const spans = document.querySelectorAll('.card-header span');
   let nomePagina = null;
 
-  // Procura pelo span que contém "Nome:"
   for (const span of spans) {
-    const texto = span.textContent;
-    if (texto.includes('Nome:')) {
-      // Ex: " Nome: ANA BIANKA SOUZA " -> "ANA BIANKA SOUZA"
-      nomePagina = texto.split('Nome:')[1];
+    if (span.textContent.includes('Nome:')) {
+      nomePagina = span.textContent.split('Nome:')[1];
       break;
     }
   }
 
-  if (!nomePagina) {
-    return { type: 'error', message: "Não foi possível identificar o NOME do aluno na página." };
-  }
+  if (!nomePagina) return { type: 'error', message: "Nome do aluno não identificado." };
 
-  // Normaliza o nome da página (sem acentos, sem espaços extras)
   const nomePaginaNorm = normalizarTexto(nomePagina);
-
-  // 2. Buscar as respostas nos dados colados (Formato: NOME [TAB] A,B,C...)
   const linhas = dadosTexto.trim().split('\n');
   let respostasAluno = null;
 
   for (const linha of linhas) {
     const partes = linha.split('\t');
     if (partes.length >= 2) {
-      const nomeLista = partes[0];
-      
-      // Compara os nomes normalizados
-      if (normalizarTexto(nomeLista) === nomePaginaNorm) {
+      if (normalizarTexto(partes[0]) === nomePaginaNorm) {
         respostasAluno = partes[1].trim().split(',').map(r => r.trim());
         break;
       }
     }
   }
 
-  if (!respostasAluno) {
-    return { type: 'warning', message: `Aluno "${nomePaginaNorm}" não encontrado na lista colada.` };
-  }
+  if (!respostasAluno) return { type: 'warning', message: `Aluno "${nomePaginaNorm}" não encontrado na lista.` };
 
-  // 3. Preencher o gabarito
   const mapaLetras = { 'A': 1, 'B': 2, 'C': 3, 'D': 4, 'E': 5 };
   const linhasTabela = document.querySelectorAll('table tbody tr');
   let marcados = 0;
   let questaoIndex = 0;
 
   linhasTabela.forEach((tr) => {
-    const badge = tr.querySelector('.badge-item');
-    if (badge) {
+    if (tr.querySelector('.badge-item') || tr.cells.length > 5) {
       if (questaoIndex < respostasAluno.length) {
-        const letraResposta = respostasAluno[questaoIndex].toUpperCase();
-        const indiceColuna = mapaLetras[letraResposta];
-
+        const indiceColuna = mapaLetras[respostasAluno[questaoIndex].toUpperCase()];
         if (indiceColuna) {
           const celulas = tr.querySelectorAll('td');
           if (celulas[indiceColuna]) {
@@ -253,9 +289,6 @@ function preencherSisedu(dadosTexto) {
     }
   });
 
-  if (marcados > 0) {
-    return { type: 'success', message: `SISEDU: ${marcados} respostas marcadas para ${nomePaginaNorm}.` };
-  } else {
-    return { type: 'warning', message: `Nenhuma resposta válida encontrada para marcar.` };
-  }
+  if (marcados > 0) return { type: 'success', message: `${marcados} questões marcadas.` };
+  else return { type: 'warning', message: `Falha ao marcar questões.` };
 }
