@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerador de Bloco de Gabarito - POA</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary: #9c27b0;
+            --dark: #7b1fa2;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #f0f2f5;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            margin: 0;
+            color: #333;
+        }
+
+        .controls {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 600px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        h1 { color: var(--primary); font-size: 1.5rem; margin-top: 0; }
+        
+        .input-group {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            align-items: center;
+            margin: 20px 0;
+        }
+
+        label { font-weight: bold; color: #555; }
+
+        input[type="number"] {
+            padding: 10px;
+            border-radius: 6px;
+            border: 2px solid #ddd;
+            font-size: 1.1rem;
+            width: 80px;
+            text-align: center;
+            font-weight: bold;
+            color: var(--dark);
+        }
+
+        input[type="number"]:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        button {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 25px;
+            font-size: 1rem;
+            font-weight: 500;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        button:hover { background-color: var(--dark); }
+
+        #result-container {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            max-width: 90%;
+        }
+
+        #generated-image {
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #ddd;
+            margin-bottom: 15px;
+        }
+
+        .instruction {
+            font-size: 0.9rem;
+            color: #666;
+            background: #e1f5fe;
+            padding: 10px;
+            border-radius: 6px;
+            border-left: 4px solid #039be5;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="controls">
+        <div style="display:flex; align-items:center; justify-content:center; gap:10px;">
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#9c27b0" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><polyline points="9 15 11 17 15 13"></polyline></svg>
+            <h1>Bloco de Gabarito (PNG)</h1>
+        </div>
+        
+        <p>Digite a quantidade de questões. O sistema ajustará o tamanho automaticamente.</p>
+
+        <div class="input-group">
+            <label>Nº de Questões:</label>
+            <input type="number" id="qtd" min="1" max="60" value="10">
+            
+            <button onclick="gerarGabarito()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                Gerar Imagem
+            </button>
+        </div>
+    </div>
+
+    <div id="result-container">
+        <p class="instruction">👇 Clique com o botão direito na imagem e escolha <strong>"Copiar imagem"</strong>.</p>
+        <img id="generated-image" alt="Gabarito Gerado" />
+    </div>
+
+    <canvas id="omr-canvas" style="display:none;"></canvas>
+
+    <script>
+        function gerarGabarito() {
+            const canvas = document.getElementById('omr-canvas');
+            const ctx = canvas.getContext('2d');
+            
+            // Validação simples
+            let qtdQuestoes = parseInt(document.getElementById('qtd').value);
+            if (!qtdQuestoes || qtdQuestoes < 1) qtdQuestoes = 10;
+            if (qtdQuestoes > 60) {
+                alert("O máximo recomendado para manter a leitura legível é 60 questões.");
+                qtdQuestoes = 60;
+                document.getElementById('qtd').value = 60;
+            }
+
+            // --- CONFIGURAÇÕES TÉCNICAS (FINE TUNING) ---
+            const WIDTH = 1200; 
+            const MARKER_SIZE = 60; 
+            const MARKER_PADDING = 20; // Ajuste de segurança para o algoritmo (borda branca)
+            
+            const COLUNAS = 3;
+            const QUESTOES_POR_COLUNA = Math.ceil(qtdQuestoes / COLUNAS);
+            
+            // Alturas
+            const HEADER_HEIGHT = 100; 
+            const FOOTER_HEIGHT = 100;
+            const LINE_HEIGHT = 60; // Leve aumento para evitar overlapping vertical
+            
+            const HEIGHT = HEADER_HEIGHT + (QUESTOES_POR_COLUNA * LINE_HEIGHT) + FOOTER_HEIGHT;
+
+            canvas.width = WIDTH;
+            canvas.height = HEIGHT;
+
+            // 1. FUNDO BRANCO
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(0, 0, WIDTH, HEIGHT);
+
+            // 2. MARCADORES FIDUCIAIS
+            ctx.fillStyle = '#000000';
+            // Topo
+            ctx.fillRect(MARKER_PADDING, MARKER_PADDING, MARKER_SIZE, MARKER_SIZE);
+            ctx.fillRect(WIDTH - MARKER_PADDING - MARKER_SIZE, MARKER_PADDING, MARKER_SIZE, MARKER_SIZE);
+            // Base
+            ctx.fillRect(MARKER_PADDING, HEIGHT - MARKER_PADDING - MARKER_SIZE, MARKER_SIZE, MARKER_SIZE);
+            ctx.fillRect(WIDTH - MARKER_PADDING - MARKER_SIZE, HEIGHT - MARKER_PADDING - MARKER_SIZE, MARKER_SIZE, MARKER_SIZE);
+
+            // 3. DESENHAR QUESTÕES
+            const CONTENT_MARGIN_SIDES = 80; 
+            const contentWidth = WIDTH - (CONTENT_MARGIN_SIDES * 2);
+            const colWidth = contentWidth / COLUNAS;
+            const startY = HEADER_HEIGHT + 10;
+
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            for (let i = 1; i <= qtdQuestoes; i++) {
+                const colIndex = Math.floor((i - 1) / QUESTOES_POR_COLUNA);
+                const lineIndex = (i - 1) % QUESTOES_POR_COLUNA;
+
+                const xBase = CONTENT_MARGIN_SIDES + (colIndex * colWidth);
+                const yBase = startY + (lineIndex * LINE_HEIGHT);
+
+                // Número
+                ctx.fillStyle = '#000000';
+                ctx.font = 'bold 38px Arial'; 
+                ctx.fillText(String(i).padStart(2, '0'), xBase + 40, yBase);
+
+                // Bolinhas
+                const options = ['A', 'B', 'C', 'D', 'E'];
+                const bubbleRadius = 20; 
+                const bubbleSpacing = 55; 
+                let bubbleX = xBase + 100; 
+
+                options.forEach(opt => {
+                    // Contorno
+                    ctx.beginPath();
+                    ctx.arc(bubbleX, yBase, bubbleRadius, 0, 2 * Math.PI);
+                    ctx.strokeStyle = '#000000';
+                    ctx.lineWidth = 3;
+                    ctx.stroke();
+
+                    // Letra (Cinza claro para dropout)
+                    ctx.fillStyle = '#AAAAAA'; 
+                    ctx.font = '22px Arial';
+                    ctx.fillText(opt, bubbleX, yBase + 2);
+
+                    bubbleX += bubbleSpacing;
+                });
+            }
+
+            // 4. RODAPÉ TÉCNICO
+            ctx.fillStyle = '#555555';
+            ctx.font = 'italic 20px Arial';
+            ctx.fillText('Gerado por Gaba Fácil - © 2025 POA - Anderson Freitas', WIDTH / 2, HEIGHT - 30);
+
+            // 5. EXPORTAR
+            const dataUrl = canvas.toDataURL('image/png');
+            const imgElement = document.getElementById('generated-image');
+            imgElement.src = dataUrl;
+            
+            document.getElementById('result-container').style.display = 'flex';
+        }
+    </script>
+</body>
+</html>

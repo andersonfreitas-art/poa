@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gaba Fácil - Leitor Scanner</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root { --primary: #2e7d32; --dark: #1b5e20; --bg: #e8f5e9; }
+        
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: var(--bg);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            margin: 0;
+            color: #333;
+        }
+
+        .container {
+            background: white;
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 600px;
+            text-align: center;
+        }
+
+        h1 { color: var(--primary); margin: 10px 0; font-size: 1.5rem; }
+
+        .video-wrapper {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            margin: 0 auto;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #000;
+            aspect-ratio: 3/4;
+        }
+
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* Overlay para guiar o usuário */
+        .overlay-guide {
+            position: absolute;
+            top: 10%; left: 10%; right: 10%; bottom: 10%;
+            border: 2px dashed rgba(255, 255, 255, 0.7);
+            border-radius: 12px;
+            pointer-events: none;
+            box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+        }
+
+        .controls { margin-top: 20px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;}
+
+        input[type="number"] {
+            padding: 10px; border: 2px solid #ccc; border-radius: 6px; width: 60px; text-align: center; font-size: 1rem;
+        }
+
+        button {
+            background-color: var(--primary); color: white; border: none; padding: 12px 24px;
+            font-size: 1rem; font-weight: bold; border-radius: 6px; cursor: pointer;
+            display: flex; align-items: center; gap: 8px;
+        }
+        button:disabled { background-color: #ccc; }
+        button#btn-scan { background-color: #2196F3; }
+
+        #status { margin: 10px 0; font-weight: bold; min-height: 24px; color: #555; }
+        
+        #results-area {
+            margin-top: 20px; text-align: left; width: 100%; display: none;
+        }
+        
+        .result-card {
+            background: #f9f9f9; padding: 10px; border-bottom: 1px solid #ddd;
+            display: flex; justify-content: space-between;
+        }
+        .marked { color: var(--primary); font-weight: bold; }
+        
+        canvas { display: none; } /* Canvas oculto usado para processamento */
+    </style>
+    
+    <script async src="https://docs.opencv.org/4.8.0/opencv.js" onload="onOpenCvReady();" type="text/javascript"></script>
+</head>
+<body>
+
+    <div class="container">
+        <h1>📸 Gaba Fácil - Leitor</h1>
+        <p id="loading-msg">Carregando bibliotecas de visão computacional...</p>
+
+        <div class="controls" style="margin-bottom: 15px;">
+            <label>Questões:</label>
+            <input type="number" id="qtd-questoes" value="10" min="1" max="60">
+        </div>
+
+        <div class="video-wrapper">
+            <video id="videoInput" playsinline autoplay muted></video>
+            <div class="overlay-guide"></div>
+        </div>
+
+        <div id="status">Aguardando câmera...</div>
+
+        <div class="controls">
+            <button id="btn-start" onclick="startCamera()">📷 Ligar Câmera</button>
+            <button id="btn-scan" onclick="scanImage()" disabled>🔍 Corrigir Gabarito</button>
+        </div>
+
+        <canvas id="canvasOutput"></canvas>
+        <canvas id="canvasProcess"></canvas>
+
+        <div id="results-area">
+            <h3>Resultados Lidos:</h3>
+            <div id="answers-list"></div>
+        </div>
+    </div>
+
+    <script>
+        let video = document.getElementById('videoInput');
+        let stream = null;
+        let cvReady = false;
+
+        function onOpenCvReady() {
+            cvReady = true;
+            document.getElementById('loading-msg').style.display = 'none';
+            document.getElementById('status').innerText = "Pronto. Ligue a câmera.";
+        }
+
+        async function startCamera() {
+            if (!cvReady) return alert("OpenCV ainda carregando...");
+            
+            try {
+                // Tenta usar a câmera traseira (environment)
+                const constraints = { 
+                    video: { 
+                        facingMode: "environment",
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    } 
+                };
+                stream = await navigator.mediaDevices.getUserMedia(constraints);
+                video.srcObject = stream;
+                video.play();
+                document.getElementById('btn-scan').disabled = false;
+                document.getElementById('btn-start').style.display = 'none';
+                document.getElementById('status').innerText = "Enquadre a folha nos cantos e clique em Corrigir";
+            } catch (err) {
+                alert("Erro ao acessar câmera: " + err);
+            }
+        }
+
+        function scanImage() {
+            if(!stream) return;
+            document.getElementById('status').innerText = "Processando...";
+            
+            // 1. Capturar frame do vídeo para o Canvas
+            let capCanvas = document.createElement('canvas');
+            capCanvas.width = video.videoWidth;
+            capCanvas.height = video.videoHeight;
+            let ctx = capCanvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, capCanvas.width, capCanvas.height);
+
+            // 2. Processamento OpenCV
+            let src = cv.imread(capCanvas);
+            let dst = new cv.Mat();
+            let gray = new cv.Mat();
+            let blurred = new cv.Mat();
+            let thresh = new cv.Mat();
+
+            // Conversão e Pré-processamento
+            cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);
+            cv.GaussianBlur(gray, blurred, new cv.Size(5, 5), 0);
+            // Adaptive Threshold é melhor para iluminação desigual
+            cv.adaptiveThreshold(blurred, thresh, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, 19, 2);
+
+            // Encontrar contornos
+            let contours = new cv.MatVector();
+            let hierarchy = new cv.Mat();
+            cv.findContours(thresh, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+
+            // Achar o maior retângulo (a folha)
+            let maxArea = 0;
+            let maxContour = null;
+            let approx = new cv.Mat();
+
+            for (let i = 0; i < contours.size(); ++i) {
+                let cnt = contours.get(i);
+                let area = cv.contourArea(cnt);
+                
+                // Filtro de tamanho mínimo para evitar ruído
+                if (area > 5000) {
+                    let peri = cv.arcLength(cnt, true);
+                    let tmp = new cv.Mat();
+                    cv.approxPolyDP(cnt, tmp, 0.02 * peri, true);
+                    
+                    if (tmp.rows === 4 && area > maxArea) {
+                        maxArea = area;
+                        maxContour = tmp; // Guarda os 4 pontos
+                        // Não deletar maxContour aqui, deletar os outros
+                    } else {
+                        tmp.delete();
+                    }
+                }
+            }
+
+            if (maxContour) {
+                processPaper(src, maxContour);
+                maxContour.delete();
+            } else {
+                alert("Não foi possível detectar a folha. Tente aproximar, melhorar a luz ou usar um fundo escuro contrastante.");
+                document.getElementById('status').innerText = "Tente novamente.";
+            }
+
+            // Limpeza de memória
+            src.delete(); dst.delete(); gray.delete(); blurred.delete(); thresh.delete();
+            contours.delete(); hierarchy.delete(); approx.delete();
+        }
+
+        function processPaper(srcImage, corners) {
+            // Ordenar os pontos (Top-Left, Top-Right, Bottom-Right, Bottom-Left)
+            let pts = [];
+            for(let i=0; i<4; i++) {
+                pts.push({x: corners.intAt(i,0), y: corners.intAt(i,1)});
+            }
+            
+            // Função simples para ordenar cantos
+            pts.sort((a,b) => a.y - b.y); // Ordena por Y (2 superiores, 2 inferiores)
+            let top = pts.slice(0,2).sort((a,b) => a.x - b.x); // Ordena superiores por X
+            let bottom = pts.slice(2,4).sort((a,b) => a.x - b.x); // Ordena inferiores por X
+            
+            let sortedPoints = [...top, ...bottom];
+
+            // Definir tamanho destino (Replicando a proporção do Gerador)
+            // O gerador tem largura 1200. Vamos processar em 800px de largura para ser mais rápido
+            let qtd = parseInt(document.getElementById('qtd-questoes').value);
+            
+            // Recalcular altura esperada baseada na lógica do gerador
+            // Lógica do gerador: HEIGHT = 100 + (Math.ceil(qtd/3) * 60) + 100;
+            const GEN_WIDTH = 1200;
+            const GEN_HEIGHT = 100 + (Math.ceil(qtd / 3) * 60) + 100;
+            
+            const DEST_WIDTH = 800;
+            const DEST_HEIGHT = Math.round((GEN_HEIGHT / GEN_WIDTH) * DEST_WIDTH);
+
+            // Matrizes de transformação
+            let srcTri = cv.matFromArray(4, 1, cv.CV_32FC2, [
+                sortedPoints[0].x, sortedPoints[0].y,
+                sortedPoints[1].x, sortedPoints[1].y,
+                sortedPoints[3].x, sortedPoints[3].y, // Atenção: Ordem OpenCV é TL, TR, BL, BR ou similar, mas warp precisa alinhar
+                sortedPoints[2].x, sortedPoints[2].y 
+            ]);
+            
+            // Ordem correta para getPerspectiveTransform: TL, TR, BL, BR (na verdade a ordem deve bater com a entrada)
+            // Minha ordenação: 0=TL, 1=TR, 2=BL, 3=BR
+            let finalSrc = cv.matFromArray(4, 1, cv.CV_32FC2, [
+                sortedPoints[0].x, sortedPoints[0].y, // TL
+                sortedPoints[1].x, sortedPoints[1].y, // TR
+                sortedPoints[3].x, sortedPoints[3].y, // BR
+                sortedPoints[2].x, sortedPoints[2].y  // BL
+            ]);
+
+            let finalDst = cv.matFromArray(4, 1, cv.CV_32FC2, [
+                0, 0,
+                DEST_WIDTH, 0,
+                DEST_WIDTH, DEST_HEIGHT,
+                0, DEST_HEIGHT
+            ]);
+
+            let M = cv.getPerspectiveTransform(finalSrc, finalDst);
+            let warped = new cv.Mat();
+            cv.warpPerspective(srcImage, warped, M, new cv.Size(DEST_WIDTH, DEST_HEIGHT));
+
+            // Converter warped para binário para contar pixels
+            let warpedGray = new cv.Mat();
+            let warpedThresh = new cv.Mat();
+            cv.cvtColor(warped, warpedGray, cv.COLOR_RGBA2GRAY);
+            cv.threshold(warpedGray, warpedThresh, 0, 255, cv.THRESH_BINARY_INV | cv.THRESH_OTSU);
+
+            analyzeBubbles(warpedThresh, DEST_WIDTH, DEST_HEIGHT, qtd);
+
+            // Limpeza
+            srcTri.delete(); finalSrc.delete(); finalDst.delete(); M.delete(); warped.delete(); warpedGray.delete(); warpedThresh.delete();
+        }
+
+        function analyzeBubbles(binaryImage, width, height, qtdQuestoes) {
+            // Fatores de escala (Do tamanho original 1200px para o tamanho processado 800px)
+            const scale = width / 1200;
+
+            const COLUNAS = 3;
+            const QUESTOES_POR_COLUNA = Math.ceil(qtdQuestoes / COLUNAS);
+            const HEADER_HEIGHT = 100;
+            const CONTENT_MARGIN_SIDES = 80;
+            const LINE_HEIGHT = 60;
+            const contentWidth = 1200 - (CONTENT_MARGIN_SIDES * 2);
+            const colWidth = contentWidth / COLUNAS;
+            const startY = HEADER_HEIGHT + 10;
+
+            let answers = [];
+            const options = ['A', 'B', 'C', 'D', 'E'];
+
+            for (let i = 1; i <= qtdQuestoes; i++) {
+                const colIndex = Math.floor((i - 1) / QUESTOES_POR_COLUNA);
+                const lineIndex = (i - 1) % QUESTOES_POR_COLUNA;
+
+                // Coordenadas originais do Gerador
+                const xBaseOriginal = CONTENT_MARGIN_SIDES + (colIndex * colWidth);
+                const yBaseOriginal = startY + (lineIndex * LINE_HEIGHT);
+                
+                // Posição inicial da primeira bolinha (A) baseada no código do gerador: bubbleX = xBase + 100
+                let bubbleXStart = xBaseOriginal + 100;
+                let bubbleY = yBaseOriginal; 
+                
+                let bestOption = '?';
+                let maxPixels = 0;
+
+                // Verificar cada opção A, B, C, D, E
+                options.forEach((opt, idx) => {
+                    // Calcular centro escalonado
+                    let centerX = (bubbleXStart + (idx * 55)) * scale;
+                    let centerY = bubbleY * scale;
+                    
+                    // Raio de leitura (um pouco menor que o raio visual para garantir estar dentro)
+                    let radius = 12 * scale; 
+
+                    // Criar ROI (Região de Interesse) em volta da bolinha
+                    let roiX = Math.floor(centerX - radius);
+                    let roiY = Math.floor(centerY - radius);
+                    let roiW = Math.floor(radius * 2);
+                    let roiH = Math.floor(radius * 2);
+
+                    // Contar pixels brancos (que eram pretos no original)
+                    if (roiX >= 0 && roiY >= 0 && (roiX + roiW) < width && (roiY + roiH) < height) {
+                        let roi = binaryImage.roi(new cv.Rect(roiX, roiY, roiW, roiH));
+                        let count = cv.countNonZero(roi);
+                        roi.delete();
+
+                        // Se tiver mais pixels preenchidos que o atual máximo, é a resposta escolhida
+                        // Limiar mínimo para considerar marcado
+                        if (count > maxPixels) {
+                            maxPixels = count;
+                            // Só considera marcado se tiver uma quantidade relevante de pixels
+                            if (count > 20) bestOption = opt; 
+                        }
+                    }
+                });
+                answers.push({ q: i, opt: bestOption });
+            }
+
+            displayResults(answers);
+        }
+
+        function displayResults(answers) {
+            const list = document.getElementById('answers-list');
+            list.innerHTML = '';
+            document.getElementById('results-area').style.display = 'block';
+            document.getElementById('status').innerText = "Leitura concluída!";
+
+            answers.forEach(item => {
+                let div = document.createElement('div');
+                div.className = 'result-card';
+                div.innerHTML = `<span>Questão ${item.q}</span> <span class="marked">${item.opt}</span>`;
+                list.appendChild(div);
+            });
+        }
+    </script>
+</body>
+</html>
