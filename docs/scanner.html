@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gaba Fácil - Leitor AR</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root { --primary: #2e7d32; --accent: #00e676; --bg: #121212; }
+        
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: var(--bg);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            height: 100vh;
+            overflow: hidden; /* Evita rolagem durante o scan */
+        }
+
+        /* Área da Câmera */
+        .camera-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            height: 70vh;
+            background: black;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        video {
+            position: absolute;
+            min-width: 100%;
+            min-height: 100%;
+            object-fit: cover;
+        }
+
+        /* Canvas que desenha o quadrado verde em cima do vídeo */
+        #canvasOverlay {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 10;
+        }
+
+        .ui-layer {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            padding: 20px;
+            background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
+            text-align: center;
+            z-index: 20;
+            box-sizing: border-box;
+        }
+
+        h1 { margin: 0 0 10px 0; font-size: 1.2rem; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+
+        .btn {
+            background-color: white; color: var(--primary); 
+            border: none; padding: 15px 30px;
+            font-size: 1.1rem; font-weight: bold; border-radius: 50px; 
+            cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            display: inline-flex; align-items: center; gap: 10px;
+            transition: transform 0.1s;
+        }
+        .btn:active { transform: scale(0.95); }
+        .btn:disabled { background-color: #555; color: #aaa; }
+
+        #status-pill {
+            display: inline-block;
+            background: rgba(0,0,0,0.6);
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+            border: 1px solid #555;
+        }
+
+        /* Card de Resultado */
+        #result-modal {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.95);
+            z-index: 100;
+            display: none;
+            flex-direction: column;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        
+        .result-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .close-btn { background: none; border: none; color: white; font-size: 2rem; cursor: pointer; }
+
+        .answers-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 10px;
+        }
+        .ans-item {
+            background: #333; padding: 10px; border-radius: 8px; text-align: center;
+        }
+        .ans-letter { color: var(--accent); font-weight: bold; font-size: 1.2rem; }
+
+        /* Canvas invisível de processamento */
+        #hiddenCanvas { display: none; }
+    </style>
+    
+    <script async src="https://docs.opencv.org/4.8.0/opencv.js" onload="onOpenCvReady();"></script>
+</head>
+<body>
+
+    <div class="camera-container">
+        <video id="videoInput" playsinline muted autoplay></video>
+        <canvas id="canvasOverlay"></canvas>
+    </div>
+
+    <div class="ui-layer">
+        <div id="status-pill">Carregando IA...</div>
+        <h1>Scanner de Gabarito</h1>
+        
+        <div style="margin-bottom: 15px;">
+            <label style="font-size: 0.9rem;">Questões:</label>
+            <input type="number" id="qtd-questoes" value="10" style="width:50px; padding: 5px; border-radius: 5px; border:none; text-align: center;">
+        </div>
+
+        <button id="btn-action" class="btn" onclick="startCamera()">📷 Iniciar Câmera</button>
+    </div>
+
+    <div id="result-modal">
+        <div class="result-header">
+            <h2>Resultados</h2>
+            <button class="close-btn" onclick="closeModal()">×</button>
+        </div>
+        <div id="answers-list" class="answers-grid"></div>
+        <button class="btn" style="margin-top: 20px; width: 100%;" onclick="closeModal()">Ler Próximo</button>
+    </div>
+
+    <canvas id="hiddenCanvas"></canvas>
+
+    <script>
+        let video = document.getElementById('videoInput');
+        let canvasOverlay = document.getElementById('canvasOverlay');
+        let ctxOverlay = canvasOverlay.getContext('2d');
+        let stream = null;
+        let isStreaming = false;
+        let cvReady = false;
+        
+        // Variáveis de controle de processamento
+        let bestContourPoints = null; // Guardar os pontos do retângulo detectado
+        let processingFrame = false;
+
+        function onOpenCvReady() {
+            cvReady = true;
+            document.getElementById('status-pill').innerText = "Sistema Pronto";
+        }
+
+        async function startCamera() {
+            if (!cvReady) return;
+            
+            const btn = document.getElementById('btn-action');
+            
+            // Se já estiver rodando, vira botão de captura
+            if (isStreaming) {
+                captureAndProcess();
+                return;
+            }
+
+            try {
+                const constraints = { 
+                    video: { 
+                        facingMode: "environment",
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    } 
+                };
+                
+                stream = await navigator.mediaDevices.getUserMedia(constraints);
+                video.srcObject = stream;
+                
+                video.onloadedmetadata = () => {
+                    video.play();
+                    isStreaming = true;
+                    // Ajustar tamanho do canvas para bater com o vídeo
+                    canvasOverlay.width = video.videoWidth;
+                    canvasOverlay.height = video.videoHeight;
+                    
+                    btn.innerText = "🔍 Escanear Agora";
+                    btn.style.backgroundColor = "#00e676"; // Verde
+                    btn.style.color = "#000";
+                    
+                    document.getElementById('status-pill').innerText = "Enquadre a folha (Borda Verde)";
+                    requestAnimationFrame(processVideoLoop);
+                };
+
+            } catch (err) {
+                alert("Erro Câmera: " + err.name);
+            }
+        }
+
+        // --- LOOP DE VISÃO COMPUTACIONAL (O "CÉREBRO" VISUAL) ---
+        function processVideoLoop() {
+            if (!isStreaming) return;
+
+            try {
+                // Configuração inicial de memória do OpenCV (reutilizar para performance)
+                let src = new cv.Mat(video.videoHeight, video.videoWidth, cv.CV_8UC4);
+                let cap = new cv.VideoCapture(video);
+                
+                // Ler frame atual
+                cap.read(src);
+
+                // Processamento leve para detecção (Gray -> Blur -> Canny/Threshold)
+                let gray = new cv.Mat();
+                cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+                
+                let blurred = new cv.Mat();
+                cv.GaussianBlur(gray, blurred, new cv.Size(5, 5), 0);
+                
+                let thresh = new cv.Mat();
+                cv.Canny(blurred, thresh, 75, 200); // Canny é rápido para bordas
+
+                // Encontrar contornos
+                let contours = new cv.MatVector();
+                let hierarchy = new cv.Mat();
+                cv.findContours(thresh, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+
+                // Buscar o melhor retângulo
+                let maxArea = 0;
+                let foundContour = null;
+
+                for (let i = 0; i < contours.size(); ++i) {
+                    let cnt = contours.get(i);
+                    let area = cv.contourArea(cnt);
+
+                    if (area > 5000) { // Filtro de ruído
+                        let peri = cv.arcLength(cnt, true);
+                        let approx = new cv.Mat();
+                        cv.approxPolyDP(cnt, approx, 0.02 * peri, true);
+
+                        if (approx.rows === 4 && area > maxArea) {
+                            maxArea = area;
+                            if (foundContour) foundContour.delete();
+                            foundContour = approx; // Guarda este como o melhor candidato
+                        } else {
+                            approx.delete();
+                        }
+                    }
+                }
+
+                // Limpar o Canvas de desenho (overlay)
+                ctxOverlay.clearRect(0, 0, canvasOverlay.width, canvasOverlay.height);
+
+                if (foundContour) {
+                    // DESENHAR O RETÂNGULO VERDE SOBRE O VÍDEO
+                    drawContourOnCanvas(foundContour);
+                    
+                    // Guardar para o momento do clique
+                    if (bestContourPoints) bestContourPoints.delete();
+                    bestContourPoints = foundContour.clone(); // Clone para persistir
+                    
+                    document.getElementById('status-pill').style.color = "#00e676";
+                    document.getElementById('status-pill').style.borderColor = "#00e676";
+                    
+                    foundContour.delete();
+                } else {
+                    bestContourPoints = null;
+                    document.getElementById('status-pill').style.color = "white";
+                    document.getElementById('status-pill').style.borderColor = "#555";
+                }
+
+                // Limpeza de memória (CRUCIAL EM LOOPS JS)
+                src.delete(); gray.delete(); blurred.delete(); thresh.delete();
+                contours.delete(); hierarchy.delete();
+
+                requestAnimationFrame(processVideoLoop);
+
+            } catch (err) {
+                console.error(err);
+                // Tenta recuperar se der erro no loop
+                requestAnimationFrame(processVideoLoop);
+            }
+        }
+
+        function drawContourOnCanvas(approx) {
+            // Extrair pontos
+            let pts = [];
+            for(let i = 0; i < 4; i++) {
+                pts.push({ x: approx.intAt(i, 0), y: approx.intAt(i, 1) });
+            }
+
+            // Desenhar linhas
+            ctxOverlay.beginPath();
+            ctxOverlay.lineWidth = 4;
+            ctxOverlay.strokeStyle = "#00e676"; // Verde Neon
+            ctxOverlay.moveTo(pts[0].x, pts[0].y);
+            ctxOverlay.lineTo(pts[1].x, pts[1].y);
+            ctxOverlay.lineTo(pts[2].x, pts[2].y);
+            ctxOverlay.lineTo(pts[3].x, pts[3].y);
+            ctxOverlay.closePath();
+            ctxOverlay.stroke();
+            
+            // Desenhar bolinhas nos cantos
+            ctxOverlay.fillStyle = "#00e676";
+            pts.forEach(p => {
+                ctxOverlay.beginPath();
+                ctxOverlay.arc(p.x, p.y, 6, 0, 2*Math.PI);
+                ctxOverlay.fill();
+            });
+        }
+
+        // --- MOMENTO DO SCAN (QUANDO O USUÁRIO CLICA) ---
+        function captureAndProcess() {
+            if (!bestContourPoints) {
+                alert("Nenhuma folha detectada! Aproxime a câmera e aguarde a borda verde.");
+                return;
+            }
+
+            document.getElementById('status-pill').innerText = "Processando...";
+            
+            // Capturar o frame exato do vídeo em alta qualidade
+            let hiddenCanvas = document.getElementById('hiddenCanvas');
+            hiddenCanvas.width = video.videoWidth;
+            hiddenCanvas.height = video.videoHeight;
+            let ctx = hiddenCanvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, hiddenCanvas.width, hiddenCanvas.height);
+            
+            let src = cv.imread(hiddenCanvas);
+            
+            // Passar para a função de corte e leitura (similar à anterior)
+            processPaper(src, bestContourPoints);
+            
+            src.delete();
+        }
+
+        function processPaper(srcImage, corners) {
+            // Ordenar cantos
+            let pts = [];
+            for(let i=0; i<4; i++) pts.push({x: corners.intAt(i,0), y: corners.intAt(i,1)});
+            
+            pts.sort((a,b) => a.y - b.y);
+            let top = pts.slice(0,2).sort((a,b) => a.x - b.x);
+            let bottom = pts.slice(2,4).sort((a,b) => a.x - b.x);
+            let sortedPoints = [...top, ...bottom];
+
+            // Setup Warp
+            let qtd = parseInt(document.getElementById('qtd-questoes').value);
+            const GEN_WIDTH = 1200;
+            const GEN_HEIGHT = 100 + (Math.ceil(qtd / 3) * 60) + 100;
+            const DEST_WIDTH = 800;
+            const DEST_HEIGHT = Math.round((GEN_HEIGHT / GEN_WIDTH) * DEST_WIDTH);
+
+            let srcTri = cv.matFromArray(4, 1, cv.CV_32FC2, [
+                sortedPoints[0].x, sortedPoints[0].y,
+                sortedPoints[1].x, sortedPoints[1].y,
+                sortedPoints[3].x, sortedPoints[3].y,
+                sortedPoints[2].x, sortedPoints[2].y 
+            ]);
+
+            let finalDst = cv.matFromArray(4, 1, cv.CV_32FC2, [
+                0, 0, DEST_WIDTH, 0, DEST_WIDTH, DEST_HEIGHT, 0, DEST_HEIGHT
+            ]);
+
+            let M = cv.getPerspectiveTransform(srcTri, finalDst);
+            let warped = new cv.Mat();
+            cv.warpPerspective(srcImage, warped, M, new cv.Size(DEST_WIDTH, DEST_HEIGHT));
+
+            // Binarizar para leitura das bolinhas
+            let warpedGray = new cv.Mat();
+            let warpedThresh = new cv.Mat();
+            cv.cvtColor(warped, warpedGray, cv.COLOR_RGBA2GRAY);
+            // Threshold adaptativo é melhor para sombras
+            cv.adaptiveThreshold(warpedGray, warpedThresh, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, 21, 10);
+
+            analyzeBubbles(warpedThresh, DEST_WIDTH, DEST_HEIGHT, qtd);
+
+            // Limpeza
+            srcTri.delete(); finalDst.delete(); M.delete(); warped.delete(); warpedGray.delete(); warpedThresh.delete();
+        }
+
+        function analyzeBubbles(binaryImage, width, height, qtdQuestoes) {
+            const scale = width / 1200;
+            const COLUNAS = 3;
+            const QUESTOES_POR_COLUNA = Math.ceil(qtdQuestoes / COLUNAS);
+            const HEADER_HEIGHT = 100; 
+            const CONTENT_MARGIN_SIDES = 80;
+            const LINE_HEIGHT = 60;
+            const contentWidth = 1200 - (CONTENT_MARGIN_SIDES * 2);
+            const colWidth = contentWidth / COLUNAS;
+            const startY = HEADER_HEIGHT + 10;
+
+            let answers = [];
+            const options = ['A', 'B', 'C', 'D', 'E'];
+
+            for (let i = 1; i <= qtdQuestoes; i++) {
+                const colIndex = Math.floor((i - 1) / QUESTOES_POR_COLUNA);
+                const lineIndex = (i - 1) % QUESTOES_POR_COLUNA;
+                
+                let bubbleXStart = CONTENT_MARGIN_SIDES + (colIndex * colWidth) + 100;
+                let bubbleY = startY + (lineIndex * LINE_HEIGHT);
+                
+                let bestOption = '-';
+                let maxPixels = 0;
+
+                options.forEach((opt, idx) => {
+                    let centerX = (bubbleXStart + (idx * 55)) * scale;
+                    let centerY = bubbleY * scale;
+                    let radius = 12 * scale;
+
+                    let roiX = Math.floor(centerX - radius);
+                    let roiY = Math.floor(centerY - radius);
+                    let roiW = Math.floor(radius * 2);
+                    let roiH = Math.floor(radius * 2);
+
+                    // Verificação de limites
+                    if (roiX >= 0 && roiY >= 0 && (roiX + roiW) < width && (roiY + roiH) < height) {
+                        let roi = binaryImage.roi(new cv.Rect(roiX, roiY, roiW, roiH));
+                        let count = cv.countNonZero(roi);
+                        roi.delete();
+
+                        if (count > maxPixels) {
+                            maxPixels = count;
+                            if (count > 25) bestOption = opt; // Sensibilidade
+                        }
+                    }
+                });
+                answers.push({ q: i, opt: bestOption });
+            }
+
+            displayResults(answers);
+        }
+
+        function displayResults(answers) {
+            const list = document.getElementById('answers-list');
+            list.innerHTML = '';
+            
+            answers.forEach(item => {
+                let div = document.createElement('div');
+                div.className = 'ans-item';
+                div.innerHTML = `<div style="font-size:0.8rem">Q${item.q}</div><div class="ans-letter">${item.opt}</div>`;
+                list.appendChild(div);
+            });
+
+            document.getElementById('result-modal').style.display = 'flex';
+            document.getElementById('status-pill').innerText = "Leitura Concluída";
+        }
+
+        function closeModal() {
+            document.getElementById('result-modal').style.display = 'none';
+            document.getElementById('status-pill').innerText = "Enquadre a folha...";
+        }
+    </script>
+</body>
+</html>
