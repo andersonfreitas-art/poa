@@ -4,10 +4,10 @@
 /**
  * POA - Professor Online Automático
  * Script de conteúdo responsável por manipular o DOM da página da SEDUC/SISEDU.
- * Versão: 2.5 (Fix contagem de questões SISEDU - Ignora cabeçalho)
+ * Versão: 1.0 (Versão Estável - Fix de Inputs e Eventos)
  */
 
-console.log("POA: Content script ativo.");
+console.log("POA v1.0: Content script ativo.");
 
 // ===================================================================
 // LISTENER PRINCIPAL
@@ -49,13 +49,24 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
 
 // ===================================================================
-// FUNÇÕES AUXILIARES
+// FUNÇÕES AUXILIARES (ATUALIZADA)
 // ===================================================================
 
+/**
+ * Simula a interação humana completa para garantir que o sistema salve.
+ */
 function dispararEventosDeMudanca(elemento) {
-  ['input', 'change', 'blur'].forEach(evento => {
-    elemento.dispatchEvent(new Event(evento, { bubbles: true }));
-  });
+  // 1. Simula focar no campo
+  elemento.dispatchEvent(new Event('focus', { bubbles: true }));
+
+  // 2. Simula a digitação (Input)
+  elemento.dispatchEvent(new Event('input', { bubbles: true }));
+
+  // 3. Simula a alteração (Change) - Critico para jQuery
+  elemento.dispatchEvent(new Event('change', { bubbles: true }));
+
+  // 4. Simula sair do campo (Blur) - Geralmente onde o salvamento ocorre
+  elemento.dispatchEvent(new Event('blur', { bubbles: true }));
 }
 
 function normalizarTexto(texto) {
@@ -63,8 +74,8 @@ function normalizarTexto(texto) {
   return texto
     .toString()
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "") // Remove acentos
-    .replace(/\s+/g, " ")             // Remove espaços duplos
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
     .trim()
     .toUpperCase();
 }
@@ -80,51 +91,102 @@ function getDiaMes(dataStr) {
 
 
 // ===================================================================
-// 1. MÓDULO DE NOTAS
+// 1. MÓDULO DE NOTAS (CORRIGIDO)
 // ===================================================================
 function preencherNotas(dadosTexto) {
-  if (!dadosTexto) return { type: 'error', message: "Nenhum dado recebido." };
+  if (!dadosTexto) {
+    return { type: 'error', message: "Nenhum dado recebido." };
+  }
 
   const notasMap = new Map();
   const linhas = dadosTexto.trim().split("\n");
 
+  console.group("POA Debug: Processamento de Notas");
+
+  // 1. Mapear Matrículas -> Notas
   linhas.forEach((linha) => {
-    const colunas = linha.split("\t");
+    const colunas = linha.split("\t").map(c => c.trim()).filter(c => c !== "");
+
     if (colunas.length >= 2) {
-      const matricula = colunas[colunas.length - 2].trim();
-      const nota = colunas[colunas.length - 1].trim().replace(",", ".");
-      if (matricula.match(/^\d+$/)) {
+      // Matrícula = Penúltima, Nota = Última
+      const notaRaw = colunas[colunas.length - 1];
+      const matriculaRaw = colunas[colunas.length - 2];
+
+      const matricula = matriculaRaw.replace(/[^0-9]/g, "");
+      // Padroniza a nota internamente com PONTO para cálculos/armazenamento
+      const nota = notaRaw.replace(",", ".");
+
+      if (matricula && matricula.length > 0) {
         notasMap.set(matricula, nota);
       }
     }
   });
 
-  let processados = 0;
-  const inputs = document.querySelectorAll("input[name^='nota']");
+  console.log(`Total mapeado do Excel: ${notasMap.size}`);
 
-  inputs.forEach((input) => {
-    const match = input.name.match(/\[(\d+)\]/);
-    if (match) {
-      const matricula = match[1];
-      if (notasMap.has(matricula)) {
-        input.value = notasMap.get(matricula).replace(".", ",");
-        dispararEventosDeMudanca(input);
-        input.style.backgroundColor = "#e8f5e9";
-        processados++;
+  // 2. Aplicar na Página usando os atributos data-*
+  let processados = 0;
+
+  // Seleciona todos os "cartões" de alunos
+  const cartoesAlunos = document.querySelectorAll("[data-template-item]");
+
+  console.log(`Alunos encontrados na página: ${cartoesAlunos.length}`);
+
+  cartoesAlunos.forEach((cartao) => {
+    // Busca o elemento que contém a matrícula
+    const elementoMatricula = cartao.querySelector("[data-item-subtitle]");
+
+    if (elementoMatricula) {
+      const matriculaPagina = elementoMatricula.innerText.replace(/[^0-9]/g, "");
+
+      if (notasMap.has(matriculaPagina)) {
+
+        // Busca o input de nota
+        const inputNota = cartao.querySelector("input[data-nota]");
+
+        if (inputNota && !inputNota.disabled) {
+          let valorNota = notasMap.get(matriculaPagina);
+
+          // CORREÇÃO CRÍTICA: Verifica o tipo do input
+          if (inputNota.type === "number") {
+            // Inputs number exigem PONTO no JavaScript (ex: "8.5")
+            valorNota = valorNota.replace(",", ".");
+          } else {
+            // Inputs text (com máscara) geralmente exigem VÍRGULA (ex: "8,5")
+            valorNota = valorNota.replace(".", ",");
+          }
+
+          inputNota.value = valorNota;
+
+          // Dispara a sequência de eventos para salvar
+          dispararEventosDeMudanca(inputNota);
+
+          // Feedback Visual
+          inputNota.style.backgroundColor = "#e8f5e9";
+          inputNota.style.borderColor = "#007f4e";
+          inputNota.style.transition = "all 0.3s";
+
+          processados++;
+        }
       }
     }
   });
 
+  console.log(`Total preenchido: ${processados}`);
+  console.groupEnd();
+
   if (processados > 0) {
-    return { type: 'success', message: `${processados} notas preenchidas!` };
+    return { type: 'success', message: `${processados} notas preenchidas com sucesso!` };
   } else {
-    return { type: 'info', message: "Nenhuma matrícula correspondente encontrada." };
+    if (notasMap.size === 0) return { type: 'error', message: "Erro na leitura dos dados. Verifique a cópia." };
+    if (cartoesAlunos.length === 0) return { type: 'error', message: "Lista de alunos não encontrada na página." };
+    return { type: 'warning', message: "Nenhuma matrícula coincidiu com a página." };
   }
 }
 
 
 // ===================================================================
-// 2. MÓDULO DE FREQUÊNCIA INTELIGENTE
+// 2. MÓDULO DE FREQUÊNCIA
 // ===================================================================
 function lancarFaltas(dadosTexto) {
   if (!dadosTexto) return { type: 'error', message: "Cole os dados no painel primeiro." };
@@ -213,12 +275,11 @@ function verificarPendencias() {
 
 
 // ===================================================================
-// 4. MÓDULO SISEDU (CORRIGIDO v2.5)
+// 4. MÓDULO SISEDU (v2.5)
 // ===================================================================
 function preencherSisedu(dadosTexto) {
   if (!dadosTexto) return { type: 'error', message: "Cole o gabarito no painel." };
 
-  // A. Identificação do Aluno
   const headers = document.querySelectorAll('.card-header span');
   let nomePagina = null;
 
@@ -240,7 +301,6 @@ function preencherSisedu(dadosTexto) {
   const nomePaginaNorm = normalizarTexto(nomePagina);
   console.log(`POA SISEDU: Aluno na página: "${nomePaginaNorm}"`);
 
-  // B. Buscar Respostas
   const linhas = dadosTexto.trim().split('\n');
   let respostasAluno = null;
 
@@ -249,7 +309,6 @@ function preencherSisedu(dadosTexto) {
     if (partes.length >= 2) {
       const nomeLista = partes[0];
       if (normalizarTexto(nomeLista) === nomePaginaNorm) {
-        // Separa por vírgula e limpa espaços
         respostasAluno = partes[1].trim().split(',').map(r => r.trim());
         break;
       }
@@ -260,22 +319,17 @@ function preencherSisedu(dadosTexto) {
     return { type: 'warning', message: `Aluno "${nomePagina}" não encontrado na lista.` };
   }
 
-  // C. Marcar Gabarito
   const mapaLetras = { 'A': 1, 'B': 2, 'C': 3, 'D': 4, 'E': 5 };
   const linhasTabela = document.querySelectorAll('table tbody tr');
   let marcados = 0;
   let questaoIndex = 0;
 
-  // CORREÇÃO AQUI: Iterar sobre as linhas da tabela
   linhasTabela.forEach((tr) => {
-    // Verificação Robusta: A linha É uma questão APENAS se tiver Radio Buttons.
-    // Isso evita contar o cabeçalho (que tem muitas colunas mas não tem radio) como questão.
     const possuiRadios = tr.querySelector('input[type="radio"]');
 
     if (possuiRadios) {
       if (questaoIndex < respostasAluno.length) {
         const letraResposta = respostasAluno[questaoIndex].toUpperCase();
-        // A=1, B=2, C=3...
         const indiceColuna = mapaLetras[letraResposta];
 
         if (indiceColuna) {
@@ -289,7 +343,7 @@ function preencherSisedu(dadosTexto) {
           }
         }
       }
-      questaoIndex++; // Só incrementa o índice se for realmente uma linha de questão
+      questaoIndex++;
     }
   });
 
