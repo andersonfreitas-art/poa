@@ -5,6 +5,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Painel POA</title>
+  
+  <link rel="stylesheet" href="../libs/driver.js.css">
   <link rel="stylesheet" href="../styles/sidepanel.css">
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
 </head>
@@ -12,17 +14,28 @@
 <body>
 
   <header>
-    <div class="logo-area">
-      <h1>🚀 POA</h1>
-      <span>Professor Online Automático</span>
+    <div class="logo-area" id="header-logo">
+      <img src="../images/logo-48.png" alt="Logo POA" class="logo-img">
+      
+      <div class="logo-text">
+        <h1>POA</h1>
+        <span>Professor Online Automático</span>
+      </div>
     </div>
+
+    <button id="btn-ajuda" class="header-icon-btn" title="Ajuda / Tutorial" aria-label="Ver Tutorial">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"></circle>
+        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+      </svg>
+    </button>
   </header>
 
   <main>
     <section>
       <h2>Acesso Rápido</h2>
       <div class="grid-menu">
-
         <a href="https://professor.seduc.ce.gov.br/" target="_blank" class="card-link">
           <div class="icon-box green">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -32,7 +45,6 @@
           </div>
           <span>Professor Online</span>
         </a>
-
         <a href="https://diretordeturma.seduc.ce.gov.br/" target="_blank" class="card-link">
           <div class="icon-box orange">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -44,8 +56,7 @@
           </div>
           <span>SIGE PPDT</span>
         </a>
-
-        <a href="https://drive.google.com/" target="_blank" class="card-link">
+        <a id="acesso-rapido-drive-poa" href="https://drive.google.com/drive/folders/17m1nizx7w5mXe8MXnQQp_YRXJMXoteT8?usp=sharing" target="_blank" class="card-link">
           <div class="icon-box blue">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
@@ -53,9 +64,8 @@
               <polyline points="17 21 17 13 23 13"></polyline>
             </svg>
           </div>
-          <span>Meu Drive</span>
+          <span>Drive POA</span>
         </a>
-
       </div>
     </section>
 
@@ -64,13 +74,12 @@
     <section>
       <h2>Ferramentas de Página</h2>
 
-      <div class="input-group">
+      <div id="transferencia-container" class="input-group">
         <label for="data-area">Área de Transferência (Ctrl+V / Ctrl+C)</label>
-        <textarea id="data-area" rows="4"
-          placeholder="Cole aqui as informações que serão lançadas (notas, faltas, etc)."></textarea>
+        <textarea id="data-area" rows="4" placeholder="Cole aqui as informações que serão lançadas (notas, faltas, etc)."></textarea>
 
         <div class="clipboard-actions">
-          <button id="btn-paste-clip" class="clip-btn" title="Colar da área de transferência">
+          <button id="btn-colar" class="clip-btn" title="Colar da área de transferência">
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
               <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
@@ -78,7 +87,7 @@
             Colar
           </button>
 
-          <button id="btn-copy-clip" class="clip-btn" title="Copiar conteúdo">
+          <button id="btn-copiar" class="clip-btn" title="Copiar conteúdo">
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
               <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
               <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
@@ -86,7 +95,7 @@
             Copiar
           </button>
 
-          <button id="btn-clear-clip" class="clip-btn" title="Limpar tudo">
+          <button id="btn-limpar" class="clip-btn" title="Limpar tudo">
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="3 6 5 6 21 6"></polyline>
               <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -98,7 +107,7 @@
         </div>
       </div>
 
-      <div class="actions-grid">
+      <div class="actions-grid" id="acoes-container">
         <button id="btn-lancar-notas" class="action-btn" aria-label="Lançar Notas">
           <span class="status-led" id="led-notas"></span>
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
@@ -143,17 +152,16 @@
         </button>
       </div>
     </section>
-
   </main>
 
-  <footer>
+  <footer id="rodape-container">
     <p>&copy; 2025 POA v1.0 - Anderson Freitas</p>
     <p>Este projeto não possui vínculo oficial com a SEDUC/CE.</p>
   </footer>
 
   <div id="toast-container"></div>
-
+  
+  <script src="../libs/driver.js.js"></script>
   <script src="../scripts/sidepanel.js"></script>
 </body>
-
 </html>

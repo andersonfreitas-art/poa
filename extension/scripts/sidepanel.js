@@ -3,7 +3,7 @@
 /**
  * POA - Professor Online Automático
  * Script do Painel Lateral
- * Versão: 2.2 (Com Validação Rigorosa de URL/Contexto)
+ * Versão: 1.1 (Com Tutorial Driver.js e IDs atualizados)
  */
 
 // Mapeamento rigoroso: Qual trecho de URL é necessário para cada função?
@@ -17,30 +17,39 @@ const REGRAS_CONTEXTO = {
 document.addEventListener('DOMContentLoaded', () => {
   const textArea = document.getElementById('data-area');
 
-  // --- Botões de Clipboard (Mantidos) ---
-  configurarBotao('btn-copy-clip', () => {
+  // ===================================================================
+  // 1. GERENCIAMENTO DA ÁREA DE TRANSFERÊNCIA (IDs EM PORTUGUÊS)
+  // ===================================================================
+
+  // Botão COPIAR
+  configurarBotao('btn-copiar', () => {
     if (!textArea.value) { mostrarToast("A área de texto está vazia.", "info"); return; }
     copiarParaAreaTransferencia(textArea.value, textArea);
     mostrarToast("Conteúdo copiado!", "success");
   });
 
-  configurarBotao('btn-paste-clip', async () => {
+  // Botão COLAR
+  configurarBotao('btn-colar', async () => {
     try {
       const texto = await navigator.clipboard.readText();
       if (texto) {
         textArea.value = texto;
         mostrarToast("Conteúdo colado!", "success");
+        // Dispara evento para garantir que o sistema perceba a mudança
         textArea.focus();
         textArea.dispatchEvent(new Event('input')); 
-      } else { mostrarToast("Área de transferência vazia.", "info"); }
+      } else { 
+        mostrarToast("Área de transferência vazia.", "info"); 
+      }
     } catch (err) {
       console.warn('Erro clipboard:', err);
-      mostrarToast("Erro ao colar. Use Ctrl+V.", "error");
+      mostrarToast("Erro ao colar. Tente Ctrl+V.", "error");
       textArea.focus();
     }
   });
 
-  configurarBotao('btn-clear-clip', () => {
+  // Botão LIMPAR
+  configurarBotao('btn-limpar', () => {
     if (!textArea.value) return;
     textArea.value = '';
     textArea.focus();
@@ -48,23 +57,25 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
 
-  // Inicializa verificação de LEDs e Listener de mudanças de aba
+  // ===================================================================
+  // 2. MONITORAMENTO DE STATUS (LEDs)
+  // ===================================================================
   atualizarStatusLeds();
-  // Monitora mudanças para atualizar os LEDs em tempo real
+  
   chrome.tabs.onActivated.addListener(() => atualizarStatusLeds());
   chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     if (changeInfo.url || changeInfo.status === 'complete') atualizarStatusLeds(); 
   });
 
 
-  // --- Botões Principais (Agora com Validação) ---
+  // ===================================================================
+  // 3. BOTÕES DE AÇÃO PRINCIPAL
+  // ===================================================================
 
-  // 1. Lançar Notas
+  // A. Lançar Notas
   configurarBotao('btn-lancar-notas', async () => {
-    // 1. Validação de Página
     if (!await validarPaginaCorreta('notas')) return;
 
-    // 2. Validação de Dados
     const dados = textArea.value;
     if (!dados) {
       mostrarToast("Cole os dados das notas primeiro.", "error");
@@ -77,7 +88,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (verificarSucesso(resposta)) textArea.value = '';
   });
 
-  // 2. Lançar Frequência
+  // B. Lançar Frequência
   configurarBotao('btn-lancar-frequencia', async () => {
     if (!await validarPaginaCorreta('frequencia')) return;
 
@@ -93,7 +104,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (verificarSucesso(resposta)) textArea.value = '';
   });
 
-  // 3. Verificar Pendências
+  // C. Verificar Pendências
   configurarBotao('btn-verificar-pendencias', async () => {
     if (!await validarPaginaCorreta('pendencias')) return;
 
@@ -102,13 +113,13 @@ document.addEventListener('DOMContentLoaded', () => {
     
     if (resposta && resposta.dados) {
       copiarParaAreaTransferencia(resposta.dados, textArea);
-      mostrarToast("Datas copiadas!", "success");
+      mostrarToast("Datas copiadas para a caixa de texto!", "success");
     } else {
       processarResposta(resposta);
     }
   });
 
-  // 4. Botão SISEDU
+  // D. Botão SISEDU
   configurarBotao('btn-lancar-gabaritos-sisedu', async () => {
     if (!await validarPaginaCorreta('sisedu')) return;
 
@@ -121,17 +132,116 @@ document.addEventListener('DOMContentLoaded', () => {
     const resposta = await enviarComando('preencher_sisedu', dados);
     processarResposta(resposta);
   });
+
+
+  // ===================================================================
+  // 4. MÓDULO DE TUTORIAL (DRIVER.JS)
+  // ===================================================================
+  
+  // Configuração
+  const driver = window.driver.js.driver;
+  const driverObj = driver({
+    showProgress: true,
+    animate: true,
+    allowClose: true,
+    doneBtnText: "Vamos lá!",
+    nextBtnText: "Próximo →",
+    prevBtnText: "← Anterior",
+    popoverClass: 'driver-popover-poa', // Classe para estilização customizada
+    onDestroyStarted: () => {
+      localStorage.setItem('poa_tutorial_visto', 'true');
+      driverObj.destroy();
+    }
+  });
+
+  // Passos do Tour (IDs baseados no HTML atualizado)
+  const passosTour = [
+    { 
+      element: '#header-logo', 
+      popover: { 
+        title: 'Bem-vindo ao POA!', 
+        description: 'Agora que sua extensão está instalada, vamos ver como funciona!', 
+        side: 'bottom', align: 'center' 
+      } 
+    },
+    { 
+      element: '#acesso-rapido-drive-poa', 
+      popover: { 
+        title: 'Use nossas planilhas', 
+        description: 'Se sua escola nunca usou o POA, baixe nossas planilhas modelo para facilitar o uso com nossa extensão.<br><br> Se já usa, ótimo! Continue com suas próprias planilhas.', 
+        side: 'bottom', align: 'center' 
+      } 
+    },
+    { 
+      element: '#led-notas', 
+      popover: { 
+        title: 'Fique de olho nos LEDs!', 
+        description: 'Nossos LEDs indicam se você está na página correta para cada ação (lançar notas, frequência, etc).<br><br>🟢 LED verde = tudo certo para inserir os dados.<br>⚪ LED cinza = página não compatível com o POA.', 
+        side: 'bottom' 
+      } 
+    },
+    { 
+      element: '#transferencia-container', 
+      popover: { 
+        title: '1. Copie e Cole', 
+        description: 'Copie os dados de uma planilha POA e cole dentro desta área.<br><br>Você pode usar os botões para facilitar o processo ou os atalhos Ctrl+C / Ctrl+V.', 
+        side: 'bottom' 
+      } 
+    },
+    { 
+      element: '#acoes-container', 
+      popover: { 
+        title: '2. Execute a Ação', 
+        description: 'Com os dados colados na Área de Transferência e o LED verde, clique na ação desejada para que o preenchimento automático seja realizado.', 
+        side: 'top' 
+      } 
+    },
+    { 
+      element: '#rodape-container', 
+      popover: { 
+        title: 'Contribua', 
+        description: 'Gostou do POA? Contriua com ideias e sugestões de ferramentas e melhorias!<br><br>Seu feedback é muito importante para nós.', 
+        side: 'top' 
+      } 
+    },
+    { 
+      element: '#btn-ajuda', 
+      popover: { 
+        title: 'Ajuda', 
+        description: 'Clique neste botão sempre que precisar rever este tutorial ou tiver dúvidas sobre o funcionamento da nossa extensão.', 
+        side: 'left' 
+      } 
+    }
+  ];
+
+  function iniciarTutorial() {
+    // Filtra passos caso algum elemento não esteja visível no DOM
+    const stepsValidos = passosTour.filter(passo => document.querySelector(passo.element));
+    if (stepsValidos.length > 0) {
+      driverObj.setSteps(stepsValidos);
+      driverObj.drive();
+    }
+  }
+
+  // Gatilho Automático (Primeira Vez)
+  const jaViu = localStorage.getItem('poa_tutorial_visto');
+  if (!jaViu) {
+    setTimeout(iniciarTutorial, 800);
+  }
+
+  // Gatilho Manual (Botão Ajuda no Header)
+  configurarBotao('btn-ajuda', (e) => {
+    e.preventDefault();
+    iniciarTutorial();
+  });
+
 });
 
 
 // ===================================================================
-// LÓGICA DE VALIDAÇÃO E COMUNICAÇÃO (CORRIGIDA)
+// LÓGICA DE VALIDAÇÃO E COMUNICAÇÃO
 // ===================================================================
 
-/**
- * Verifica se a aba ativa contém a URL correta para a ação desejada.
- * Se não tiver, exibe erro e retorna FALSE.
- */
 async function validarPaginaCorreta(tipoAcao) {
   try {
     const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
@@ -144,10 +254,9 @@ async function validarPaginaCorreta(tipoAcao) {
     const trechoObrigatorio = REGRAS_CONTEXTO[tipoAcao];
     if (!tab.url.includes(trechoObrigatorio)) {
       mostrarToast("Recurso não disponível nesta página.", "error");
-      return false; // BLOQUEIA A AÇÃO
+      return false;
     }
-
-    return true; // PERMITE A AÇÃO
+    return true;
   } catch (e) {
     console.error(e);
     return false;
@@ -157,14 +266,10 @@ async function validarPaginaCorreta(tipoAcao) {
 async function enviarComando(acao, dados) {
   try {
     const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
-    
-    // Envia a mensagem. Se o content.js não estiver lá, isso vai cair no catch.
     const resposta = await chrome.tabs.sendMessage(tab.id, { action: acao, dados: dados });
     return resposta;
-
   } catch (error) {
     console.warn("Erro de comunicação:", error);
-    // Este erro geralmente acontece se o content script não carregou (página errada ou recarregamento necessário)
     mostrarToast("Erro de conexão. Recarregue a página (F5).", "error");
     return null;
   }
@@ -176,13 +281,10 @@ async function atualizarStatusLeds() {
     if (!tab || !tab.url) return;
     
     const url = tab.url;
-    
-    // Atualiza visualmente os LEDs
     toggleLed('led-notas', url.includes(REGRAS_CONTEXTO['notas']));
     toggleLed('led-frequencia', url.includes(REGRAS_CONTEXTO['frequencia']));
     toggleLed('led-pendencias', url.includes(REGRAS_CONTEXTO['pendencias']));
     toggleLed('led-sisedu', url.includes(REGRAS_CONTEXTO['sisedu']));
-
   } catch (error) {
     console.log("Erro ao atualizar LEDs:", error);
   }
@@ -200,11 +302,6 @@ function toggleLed(id, ativo) {
 // UTILITÁRIOS VISUAIS
 // ===================================================================
 
-function configuringBotao(id, callback) { // Ops, corrigindo nome no helper abaixo
-  const btn = document.getElementById(id);
-  if (btn) btn.addEventListener('click', callback);
-}
-// Alias para manter compatibilidade caso tenha usado o nome acima
 function configurarBotao(id, callback) {
   const btn = document.getElementById(id);
   if (btn) btn.addEventListener('click', callback);
@@ -244,8 +341,7 @@ function mostrarToast(mensagem, tipo = 'info') {
   
   container.appendChild(toast);
   
-  // Reflow para animação
-  void toast.offsetWidth; 
+  void toast.offsetWidth; // Force Reflow
   toast.classList.add('show');
 
   setTimeout(() => {

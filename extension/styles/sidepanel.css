@@ -1,7 +1,7 @@
 /* scripts/sidepanel.css */
 
 /* ===================================================================
-   1. RESET E GLOBAIS
+   1. RESET E GLOBAIS (LAYOUT APP SHELL)
    =================================================================== */
 * {
   box-sizing: border-box;
@@ -13,33 +13,112 @@
 body {
   background-color: #f4f6f8;
   color: #333;
+  /* Configuração para Rodapé Fixo e Main com Scroll */
+  height: 100vh;           
+  display: flex;           
+  flex-direction: column;  
+  overflow: hidden;        
 }
 
+/* O MAIN ocupa o espaço sobrando e rola internamente */
 main {
   padding: 16px;
+  flex-grow: 1;            
+  overflow-y: auto;        
+  scrollbar-width: thin;
+  scrollbar-color: #ccc transparent;
+}
+
+main::-webkit-scrollbar {
+  width: 6px;
+}
+main::-webkit-scrollbar-thumb {
+  background-color: #ccc;
+  border-radius: 4px;
 }
 
 /* ===================================================================
-   2. CABEÇALHO (Identidade SEDUC)
+   2. CABEÇALHO (Layout Flex Híbrido)
    =================================================================== */
 header {
   background: linear-gradient(135deg, #007f4e 0%, #004d2f 100%);
   color: white;
-  padding: 16px;
+  padding: 12px 16px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  text-align: center;
+  
+  /* Flexbox Principal: Logo (Esq) --- Ajuda (Dir) */
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+  z-index: 10;
 }
 
-header h1 {
+/* Container da Logo (Imagem + Bloco de Texto) */
+.logo-area {
+  display: flex;
+  flex-direction: row; /* GARANTE QUE A IMAGEM FIQUE AO LADO DO TEXTO */
+  align-items: center; 
+  gap: 12px;           
+  text-align: left;
+}
+
+/* A Imagem da Logo */
+.logo-img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  display: block;
+  filter: drop-shadow(0 2px 2px rgba(0,0,0,0.2));
+}
+
+/* O Bloco de Texto (Título em cima, Subtítulo embaixo) */
+.logo-text {
+  display: flex;
+  flex-direction: column; /* GARANTE QUE O TÍTULO FIQUE SOBRE O SUBTÍTULO */
+  justify-content: center;
+}
+
+.logo-text h1 {
   font-size: 20px;
-  font-weight: 700;
-  letter-spacing: 1px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  line-height: 1.1;
+  margin: 0;
 }
 
-header span {
+.logo-text span {
   font-size: 12px;
   opacity: 0.9;
-  font-weight: 300;
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+/* Botão de Ajuda */
+.header-icon-btn {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.9);
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+}
+
+.header-icon-btn:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  transform: scale(1.05);
+}
+
+.header-icon-btn svg {
+  width: 24px;
+  height: 24px;
 }
 
 /* ===================================================================
@@ -59,12 +138,6 @@ h2 {
   border: 0;
   border-top: 1px solid #e0e0e0;
   margin: 20px 0;
-}
-
-.helper-text {
-  font-size: 11px;
-  color: #666;
-  margin-bottom: 10px;
 }
 
 /* ===================================================================
@@ -103,7 +176,6 @@ h2 {
   font-weight: 500;
 }
 
-/* Ícones dos cards */
 .icon-box {
   width: 32px;
   height: 32px;
@@ -121,7 +193,6 @@ h2 {
 .icon-box.green { color: #007f4e; background: #e8f5e9; }
 .icon-box.orange { color: #f57c00; background: #fff3e0; }
 .icon-box.blue { color: #1976d2; background: #e3f2fd; }
-.icon-box.red { color: #d32f2f; background: #ffebee; }
 
 /* ===================================================================
    5. FORMULÁRIO E BOTÕES DE AÇÃO
@@ -146,12 +217,9 @@ textarea {
 }
 
 .action-btn {
-  /* Layout Flex para alinhar LED + Ícone + Texto */
   display: flex;
   align-items: center;
   gap: 10px;
-  
-  /* Estilo Visual */
   width: 100%;
   background-color: white;
   border: 1px solid #ccc;
@@ -173,15 +241,15 @@ textarea {
   color: #007f4e;
 }
 
-/* Botões de Clipboard (Copiar/Colar) */
+/* Botões de Clipboard */
 .clipboard-actions {
   display: flex;
   gap: 8px;
-  margin-bottom: 15px; /* Espaço antes dos botões principais */
+  margin-bottom: 15px;
 }
 
 .clip-btn {
-  flex: 1; /* Ocupam 50% cada */
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -207,7 +275,7 @@ textarea {
 }
 
 .clip-btn svg {
-  color: #666; /* Ícones cinza neutro */
+  color: #666;
 }
 
 /* ===================================================================
@@ -217,29 +285,32 @@ textarea {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background-color: #ccc; /* Cinza (Apagado) */
+  background-color: #ccc;
   border: 1px solid #999;
   display: inline-block;
-  flex-shrink: 0; /* Evita que o LED amasse se o texto for longo */
+  flex-shrink: 0;
   transition: all 0.3s ease;
   box-shadow: inset 1px 1px 2px rgba(0,0,0,0.2);
 }
 
 .status-led.active {
-  background-color: #00e676; /* Verde Brilhante */
+  background-color: #00e676;
   border-color: #00a152;
   box-shadow: 0 0 6px #00e676, inset 1px 1px 2px rgba(255,255,255,0.5);
 }
 
 /* ===================================================================
-   7. RODAPÉ
+   7. RODAPÉ (Fixo no Fundo pelo Flexbox)
    =================================================================== */
 footer {
-  margin-top: 20px;
   text-align: center;
   font-size: 10px;
   color: #999;
-  padding-bottom: 10px;
+  padding: 12px;
+  background-color: #f4f6f8; 
+  border-top: 1px solid #e0e0e0;
+  flex-shrink: 0; 
+  z-index: 10;
 }
 
 /* ===================================================================
@@ -250,7 +321,7 @@ footer {
   bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 1000;
+  z-index: 9999;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -279,18 +350,35 @@ footer {
   transform: translateY(0);
 }
 
-/* Variantes de cor */
-.toast.success {
-  background-color: #007f4e;
-  border-left: 4px solid #004d2f;
+.toast.success { background-color: #007f4e; border-left: 4px solid #004d2f; }
+.toast.error { background-color: #d32f2f; border-left: 4px solid #b71c1c; }
+.toast.info { background-color: #2c3e50; border-left: 4px solid #1a252f; }
+
+/* ===================================================================
+   9. CUSTOMIZAÇÃO DO DRIVER.JS
+   =================================================================== */
+.driver-popover {
+  max-width: 92% !important;
+  box-sizing: border-box;
+  font-family: 'Roboto', sans-serif !important;
 }
 
-.toast.error {
-  background-color: #d32f2f;
-  border-left: 4px solid #b71c1c;
+.driver-popover-poa .driver-popover-footer .driver-popover-btn-group .driver-popover-done-btn {
+  background-color: #007f4e !important;
+  color: white !important;
+  text-shadow: none !important;
+  border: none !important;
 }
 
-.toast.info {
-  background-color: #2c3e50;
-  border-left: 4px solid #1a252f;
+.driver-popover-poa .driver-popover-footer .driver-popover-btn-group .driver-popover-done-btn:hover {
+  background-color: #004d2f !important;
+}
+
+.driver-popover-poa .driver-popover-footer .driver-popover-btn-group .driver-popover-next-btn {
+  color: #333 !important;
+  border: 1px solid #ccc !important;
+}
+
+.driver-popover-poa .driver-popover-footer .driver-popover-btn-group .driver-popover-next-btn:hover {
+  background-color: #f0f0f0 !important;
 }
