@@ -3,7 +3,7 @@
 /**
  * POA - Professor Online Automático
  * Script do Painel Lateral
- * Versão: 1.1 (Com Tutorial Driver.js e IDs atualizados)
+ * Versão: 1.1 (Frequência não limpa mais o input automaticamente)
  */
 
 // Mapeamento rigoroso: Qual trecho de URL é necessário para cada função?
@@ -18,7 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const textArea = document.getElementById('data-area');
 
   // ===================================================================
-  // 1. GERENCIAMENTO DA ÁREA DE TRANSFERÊNCIA (IDs EM PORTUGUÊS)
+  // 1. GERENCIAMENTO DA ÁREA DE TRANSFERÊNCIA
   // ===================================================================
 
   // Botão COPIAR
@@ -35,7 +35,6 @@ document.addEventListener('DOMContentLoaded', () => {
       if (texto) {
         textArea.value = texto;
         mostrarToast("Conteúdo colado!", "success");
-        // Dispara evento para garantir que o sistema perceba a mudança
         textArea.focus();
         textArea.dispatchEvent(new Event('input')); 
       } else { 
@@ -72,7 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // 3. BOTÕES DE AÇÃO PRINCIPAL
   // ===================================================================
 
-  // A. Lançar Notas
+  // A. Lançar Notas (MANTÉM LIMPEZA AUTOMÁTICA)
   configurarBotao('btn-lancar-notas', async () => {
     if (!await validarPaginaCorreta('notas')) return;
 
@@ -85,10 +84,12 @@ document.addEventListener('DOMContentLoaded', () => {
     mostrarToast("Processando notas...", "info");
     const resposta = await enviarComando('preencher_notas', dados);
     processarResposta(resposta);
-    if (verificarSucesso(resposta)) textArea.value = '';
+    
+    // Notas geralmente são lançadas uma vez por turma, então limpar ajuda.
+    if (verificarSucesso(resposta)) textArea.value = ''; 
   });
 
-  // B. Lançar Frequência
+  // B. Lançar Frequência (SEM LIMPEZA AUTOMÁTICA)
   configurarBotao('btn-lancar-frequencia', async () => {
     if (!await validarPaginaCorreta('frequencia')) return;
 
@@ -101,7 +102,9 @@ document.addEventListener('DOMContentLoaded', () => {
     mostrarToast("Processando frequência...", "info");
     const resposta = await enviarComando('preencher_frequencia', dados);
     processarResposta(resposta);
-    if (verificarSucesso(resposta)) textArea.value = '';
+    
+    // ALTERAÇÃO AQUI: Removemos a limpeza para permitir lançar múltiplos dias
+    // if (verificarSucesso(resposta)) textArea.value = ''; <--- COMENTADO/REMOVIDO
   });
 
   // C. Verificar Pendências
@@ -138,7 +141,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // 4. MÓDULO DE TUTORIAL (DRIVER.JS)
   // ===================================================================
   
-  // Configuração
   const driver = window.driver.js.driver;
   const driverObj = driver({
     showProgress: true,
@@ -147,14 +149,13 @@ document.addEventListener('DOMContentLoaded', () => {
     doneBtnText: "Vamos lá!",
     nextBtnText: "Próximo →",
     prevBtnText: "← Anterior",
-    popoverClass: 'driver-popover-poa', // Classe para estilização customizada
+    popoverClass: 'driver-popover-poa',
     onDestroyStarted: () => {
       localStorage.setItem('poa_tutorial_visto', 'true');
       driverObj.destroy();
     }
   });
 
-  // Passos do Tour (IDs baseados no HTML atualizado)
   const passosTour = [
     { 
       element: '#header-logo', 
@@ -168,7 +169,7 @@ document.addEventListener('DOMContentLoaded', () => {
       element: '#acesso-rapido-drive-poa', 
       popover: { 
         title: 'Use nossas planilhas', 
-        description: 'Se sua escola nunca usou o POA, baixe nossas planilhas modelo para facilitar o uso com nossa extensão.<br><br> Se já usa, ótimo! Continue com suas próprias planilhas.', 
+        description: 'Baixe nossas planilhas modelo no Drive para facilitar o uso com a extensão.', 
         side: 'bottom', align: 'center' 
       } 
     },
@@ -176,7 +177,7 @@ document.addEventListener('DOMContentLoaded', () => {
       element: '#led-notas', 
       popover: { 
         title: 'Fique de olho nos LEDs!', 
-        description: 'Nossos LEDs indicam se você está na página correta para cada ação (lançar notas, frequência, etc).<br><br>🟢 LED verde = tudo certo para inserir os dados.<br>⚪ LED cinza = página não compatível com o POA.', 
+        description: '🟢 Verde: Página correta.<br>⚪ Cinza: Página incompatível.', 
         side: 'bottom' 
       } 
     },
@@ -184,7 +185,7 @@ document.addEventListener('DOMContentLoaded', () => {
       element: '#transferencia-container', 
       popover: { 
         title: '1. Copie e Cole', 
-        description: 'Copie os dados de uma planilha POA e cole dentro desta área.<br><br>Você pode usar os botões para facilitar o processo ou os atalhos Ctrl+C / Ctrl+V.', 
+        description: 'Cole os dados da planilha aqui usando os botões ou Ctrl+V.', 
         side: 'bottom' 
       } 
     },
@@ -192,7 +193,7 @@ document.addEventListener('DOMContentLoaded', () => {
       element: '#acoes-container', 
       popover: { 
         title: '2. Execute a Ação', 
-        description: 'Com os dados colados na Área de Transferência e o LED verde, clique na ação desejada para que o preenchimento automático seja realizado.', 
+        description: 'Clique na ação desejada para o robô preencher o site.', 
         side: 'top' 
       } 
     },
@@ -200,7 +201,7 @@ document.addEventListener('DOMContentLoaded', () => {
       element: '#rodape-container', 
       popover: { 
         title: 'Contribua', 
-        description: 'Gostou do POA? Contriua com ideias e sugestões de ferramentas e melhorias!<br><br>Seu feedback é muito importante para nós.', 
+        description: 'Seu feedback é muito importante para nós.', 
         side: 'top' 
       } 
     },
@@ -208,14 +209,13 @@ document.addEventListener('DOMContentLoaded', () => {
       element: '#btn-ajuda', 
       popover: { 
         title: 'Ajuda', 
-        description: 'Clique neste botão sempre que precisar rever este tutorial ou tiver dúvidas sobre o funcionamento da nossa extensão.', 
+        description: 'Clique aqui para rever este tutorial.', 
         side: 'left' 
       } 
     }
   ];
 
   function iniciarTutorial() {
-    // Filtra passos caso algum elemento não esteja visível no DOM
     const stepsValidos = passosTour.filter(passo => document.querySelector(passo.element));
     if (stepsValidos.length > 0) {
       driverObj.setSteps(stepsValidos);
@@ -223,13 +223,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Gatilho Automático (Primeira Vez)
   const jaViu = localStorage.getItem('poa_tutorial_visto');
   if (!jaViu) {
     setTimeout(iniciarTutorial, 800);
   }
 
-  // Gatilho Manual (Botão Ajuda no Header)
   configurarBotao('btn-ajuda', (e) => {
     e.preventDefault();
     iniciarTutorial();
