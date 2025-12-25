@@ -155,7 +155,7 @@ document.addEventListener('DOMContentLoaded', () => {
       driverObj.destroy();
     }
   });
-
+  
   const passosTour = [
     { 
       element: '#header-logo', 
@@ -169,7 +169,7 @@ document.addEventListener('DOMContentLoaded', () => {
       element: '#acesso-rapido-drive-poa', 
       popover: { 
         title: 'Use nossas planilhas', 
-        description: 'Baixe nossas planilhas modelo no Drive para facilitar o uso com a extensão.', 
+        description: 'Se sua escola nunca usou o POA, baixe nossas planilhas modelo para facilitar o uso com nossa extensão.<br><br> Se já usa, ótimo! Continue com suas próprias planilhas.', 
         side: 'bottom', align: 'center' 
       } 
     },
@@ -177,7 +177,7 @@ document.addEventListener('DOMContentLoaded', () => {
       element: '#led-notas', 
       popover: { 
         title: 'Fique de olho nos LEDs!', 
-        description: '🟢 Verde: Página correta.<br>⚪ Cinza: Página incompatível.', 
+        description: 'Nossos LEDs indicam se você está na página correta para cada ação (lançar notas, frequência, etc).<br><br>🟢 LED verde = tudo certo para inserir os dados.<br>⚪ LED cinza = página não compatível com o POA.', 
         side: 'bottom' 
       } 
     },
@@ -185,7 +185,7 @@ document.addEventListener('DOMContentLoaded', () => {
       element: '#transferencia-container', 
       popover: { 
         title: '1. Copie e Cole', 
-        description: 'Cole os dados da planilha aqui usando os botões ou Ctrl+V.', 
+        description: 'Copie os dados de uma planilha POA e cole dentro desta área.<br><br>Você pode usar os botões para facilitar o processo ou os atalhos Ctrl+C / Ctrl+V.', 
         side: 'bottom' 
       } 
     },
@@ -193,7 +193,7 @@ document.addEventListener('DOMContentLoaded', () => {
       element: '#acoes-container', 
       popover: { 
         title: '2. Execute a Ação', 
-        description: 'Clique na ação desejada para o robô preencher o site.', 
+        description: 'Com os dados colados na Área de Transferência e o LED verde, clique na ação desejada para que o preenchimento automático seja realizado.', 
         side: 'top' 
       } 
     },
@@ -201,7 +201,7 @@ document.addEventListener('DOMContentLoaded', () => {
       element: '#rodape-container', 
       popover: { 
         title: 'Contribua', 
-        description: 'Seu feedback é muito importante para nós.', 
+        description: 'Gostou do POA? Contriua com ideias e sugestões de ferramentas e melhorias!<br><br>Seu feedback é muito importante para nós.', 
         side: 'top' 
       } 
     },
@@ -209,7 +209,7 @@ document.addEventListener('DOMContentLoaded', () => {
       element: '#btn-ajuda', 
       popover: { 
         title: 'Ajuda', 
-        description: 'Clique aqui para rever este tutorial.', 
+        description: 'Clique neste botão sempre que precisar rever este tutorial ou tiver dúvidas sobre o funcionamento da nossa extensão.', 
         side: 'left' 
       } 
     }

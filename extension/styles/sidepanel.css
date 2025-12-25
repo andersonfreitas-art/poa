@@ -145,15 +145,15 @@ h2 {
    =================================================================== */
 .grid-menu {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 10px;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  gap: 8px;
 }
 
 .card-link {
   background: white;
   border: 1px solid #e0e0e0;
   border-radius: 8px;
-  padding: 12px;
+  padding: 10px;
   text-decoration: none;
   color: #444;
   display: flex;
