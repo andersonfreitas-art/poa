@@ -3,7 +3,7 @@
 /**
  * POA - Professor Online Automático
  * Script do Painel Lateral
- * Versão: 1.1 (Frequência não limpa mais o input automaticamente)
+ * Versão: 1.2 (Clean - Sem Mailto, com Link Webstore)
  */
 
 // Mapeamento rigoroso: Qual trecho de URL é necessário para cada função?
@@ -71,7 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // 3. BOTÕES DE AÇÃO PRINCIPAL
   // ===================================================================
 
-  // A. Lançar Notas (MANTÉM LIMPEZA AUTOMÁTICA)
+  // A. Lançar Notas
   configurarBotao('btn-lancar-notas', async () => {
     if (!await validarPaginaCorreta('notas')) return;
 
@@ -85,11 +85,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const resposta = await enviarComando('preencher_notas', dados);
     processarResposta(resposta);
     
-    // Notas geralmente são lançadas uma vez por turma, então limpar ajuda.
+    // Limpa a área após sucesso (Notas geralmente é 1x por turma)
     if (verificarSucesso(resposta)) textArea.value = ''; 
   });
 
-  // B. Lançar Frequência (SEM LIMPEZA AUTOMÁTICA)
+  // B. Lançar Frequência
   configurarBotao('btn-lancar-frequencia', async () => {
     if (!await validarPaginaCorreta('frequencia')) return;
 
@@ -103,8 +103,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const resposta = await enviarComando('preencher_frequencia', dados);
     processarResposta(resposta);
     
-    // ALTERAÇÃO AQUI: Removemos a limpeza para permitir lançar múltiplos dias
-    // if (verificarSucesso(resposta)) textArea.value = ''; <--- COMENTADO/REMOVIDO
+    // NÃO LIMPA a área (permite lançar múltiplos dias)
   });
 
   // C. Verificar Pendências
@@ -198,8 +197,8 @@ document.addEventListener('DOMContentLoaded', () => {
       } 
     },
     { 
-      element: '#rodape-container', 
-      popover: { 
+      element: '#social-container', 
+      popover: {
         title: 'Contribua', 
         description: 'Gostou do POA? Contriua com ideias e sugestões de ferramentas e melhorias!<br><br>Seu feedback é muito importante para nós.', 
         side: 'top' 
@@ -223,11 +222,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // Gatilho Automático (Primeira Vez)
   const jaViu = localStorage.getItem('poa_tutorial_visto');
   if (!jaViu) {
     setTimeout(iniciarTutorial, 800);
   }
 
+  // Gatilho Manual (Botão Ajuda no Header)
   configurarBotao('btn-ajuda', (e) => {
     e.preventDefault();
     iniciarTutorial();
