@@ -1,13 +1,13 @@
 # POA - Professor Online Automático 🚀
 
-![Versão](https://img.shields.io/badge/versão-1.0-green) ![Estado](https://img.shields.io/badge/status-em_desenvolvimento-orange) ![Licença](https://img.shields.io/badge/license-MIT-blue)
+![Versão](https://img.shields.io/badge/versão-1.1-green) ![Estado](https://img.shields.io/badge/status-em_desenvolvimento-orange) ![Licença](https://img.shields.io/badge/license-MIT-blue)
 
-Uma extensão de navegador desenvolvida para otimizar o tempo pedagógico e de planejamento da comunidade escolar, oferecendo ferramentas de gestão e automatizando processos no Portal Professor Online e outros sistemas da rede educacional do Estado do Ceará.
+Uma extensão de navegador desenvolvida para otimizar o tempo pedagógico e de planejamento da comunidade escolar, oferecendo ferramentas de automatomação em processos no Portal Professor Online e outros sistemas da rede de ensino pública do Estado do Ceará.
 
 ## 📋 Funcionalidades
 
-* **Lançamento de Notas:** Importação de notas via "Copiar e Colar" direto de planilhas (Excel/Google Sheets).
-* **Automação de Frequência:** Marcação automática de faltas baseada em uma lista de matrículas simples.
+* **Lançamento de Notas:** Importação de notas via "Copiar e Colar" direto das planilhas POA.
+* **Lançamento de Frequência:** Marcação automática de faltas baseada em uma lista de matrículas simples.
 * **Painel Lateral Inteligente:** Acesso rápido a ferramentas e links úteis (Professor Online, SIGE PPDT, Drive), com feedback visual de disponibilidade.
 * **Verificação de Pendências:** Varredura automática de relatórios para identificar dias sem frequência lançada.
 
