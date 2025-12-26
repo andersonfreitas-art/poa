@@ -3,7 +3,7 @@
 /**
  * POA - Professor Online Automático
  * Script do Painel Lateral
- * Versão: 1.2 (Clean - Sem Mailto, com Link Webstore)
+ * Versão: 1.3
  */
 
 const REGRAS_CONTEXTO = {

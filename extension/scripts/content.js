@@ -4,7 +4,7 @@
 /**
  * POA - Professor Online Automático
  * Script de conteúdo responsável por manipular o DOM da página da SEDUC/SISEDU.
- * Versão: 1.3 (Final - Com retorno automático)
+ * Versão: 1.3
  */
 
 console.log("POA v1.3: Content script ativo.");
