@@ -6,12 +6,12 @@
  * Versão: 1.2 (Clean - Sem Mailto, com Link Webstore)
  */
 
-// Mapeamento rigoroso: Qual trecho de URL é necessário para cada função?
 const REGRAS_CONTEXTO = {
-  'notas': 'avaliacao_nota',         // Lançar Notas
-  'frequencia': 'frequencia_chamada', // Lançar Frequência
-  'pendencias': 'relatorio_aulas_dadas', // Pendências
-  'sisedu': 'cadastrar_gabarito'     // SISEDU
+  'notas': 'avaliacao_nota',
+  'frequencia': 'frequencia_chamada',
+  'pendencias': 'relatorio_aulas_dadas',
+  'aulas': 'registro_aula_item',
+  'sisedu': 'cadastrar_gabarito'
 };
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -132,6 +132,33 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     mostrarToast("Identificando aluno...", "info");
     const resposta = await enviarComando('preencher_sisedu', dados);
+    processarResposta(resposta);
+  });
+
+  // E. Lançar Aulas em Lote
+  configurarBotao('btn-lancar-aulas', async () => {
+    if (!await validarPaginaCorreta('aulas')) return;
+
+    const dados = textArea.value;
+    if (!dados) {
+      mostrarToast("Cole os dados (Data | Conteúdo | Subconteúdo).", "error");
+      textArea.focus(); return;
+    }
+
+    mostrarToast("Iniciando lançamento em lote...", "info");
+    
+    // Feedback visual imediato que o processo começou
+    const btn = document.getElementById('btn-lancar-aulas');
+    const textoOriginal = btn.innerHTML;
+    btn.innerHTML = '⏳ Processando...';
+    btn.disabled = true;
+
+    const resposta = await enviarComando('preencher_aulas', dados);
+    
+    // Restaura botão
+    btn.innerHTML = textoOriginal;
+    btn.disabled = false;
+
     processarResposta(resposta);
   });
 
@@ -283,6 +310,7 @@ async function atualizarStatusLeds() {
     toggleLed('led-notas', url.includes(REGRAS_CONTEXTO['notas']));
     toggleLed('led-frequencia', url.includes(REGRAS_CONTEXTO['frequencia']));
     toggleLed('led-pendencias', url.includes(REGRAS_CONTEXTO['pendencias']));
+    toggleLed('led-aulas', url.includes(REGRAS_CONTEXTO['aulas']));
     toggleLed('led-sisedu', url.includes(REGRAS_CONTEXTO['sisedu']));
   } catch (error) {
     console.log("Erro ao atualizar LEDs:", error);

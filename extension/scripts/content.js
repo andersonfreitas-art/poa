@@ -4,10 +4,10 @@
 /**
  * POA - Professor Online Automático
  * Script de conteúdo responsável por manipular o DOM da página da SEDUC/SISEDU.
- * Versão: 1.0 (Versão Estável - Fix de Inputs e Eventos)
+ * Versão: 1.3 (Final - Com retorno automático)
  */
 
-console.log("POA v1.0: Content script ativo.");
+console.log("POA v1.3: Content script ativo.");
 
 // ===================================================================
 // LISTENER PRINCIPAL
@@ -29,6 +29,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         const pendencias = verificarPendencias();
         sendResponse({ dados: pendencias });
         return true;
+
+      case 'preencher_aulas':
+        // Como é uma função assíncrona longa, precisamos tratar diferente
+        processarFilaAulas(request.dados)
+          .then(res => sendResponse(res));
+        return true; // Mantém o canal aberto para resposta assíncrona
 
       case 'preencher_sisedu':
         resultado = preencherSisedu(request.dados);
@@ -91,7 +97,7 @@ function getDiaMes(dataStr) {
 
 
 // ===================================================================
-// 1. MÓDULO DE NOTAS (CORRIGIDO)
+// 1. MÓDULO DE NOTAS
 // ===================================================================
 function preencherNotas(dadosTexto) {
   if (!dadosTexto) {
@@ -147,18 +153,13 @@ function preencherNotas(dadosTexto) {
         if (inputNota && !inputNota.disabled) {
           let valorNota = notasMap.get(matriculaPagina);
 
-          // CORREÇÃO CRÍTICA: Verifica o tipo do input
           if (inputNota.type === "number") {
-            // Inputs number exigem PONTO no JavaScript (ex: "8.5")
             valorNota = valorNota.replace(",", ".");
           } else {
-            // Inputs text (com máscara) geralmente exigem VÍRGULA (ex: "8,5")
             valorNota = valorNota.replace(".", ",");
           }
 
           inputNota.value = valorNota;
-
-          // Dispara a sequência de eventos para salvar
           dispararEventosDeMudanca(inputNota);
 
           // Feedback Visual
@@ -352,4 +353,137 @@ function preencherSisedu(dadosTexto) {
   } else {
     return { type: 'warning', message: `Falha ao marcar. Verifique se o gabarito corresponde.` };
   }
+}
+
+// ===================================================================
+// 5. MÓDULO DE REGISTRO DE AULAS (LÓGICA SIMPLIFICADA + VOLTAR)
+// ===================================================================
+
+async function processarFilaAulas(dadosTexto) {
+  const linhas = dadosTexto.trim().split("\n");
+  let sucesso = 0;
+  let erro = 0;
+
+  for (const linha of linhas) {
+    if (!linha.trim()) continue;
+
+    // Divide dados
+    let cols = linha.split("\t");
+    if (cols.length < 3) cols = linha.split(";");
+    
+    if (cols.length >= 3) {
+      const data = cols[0].trim();
+      const conteudo = cols[1].trim();
+      const subconteudo = cols.slice(2).join(" ").trim();
+
+      try {
+        console.log(`Processando: ${data} | ${conteudo}`);
+        await passoAPassoAula(data, conteudo, subconteudo);
+        sucesso++;
+      } catch (err) {
+        console.error("Erro na aula:", err);
+        erro++;
+      }
+    }
+  }
+
+  // --- NOVO: Lógica de retorno automático ---
+  if (sucesso > 0) {
+    console.log("Todas as aulas foram lançadas. Voltando para a listagem...");
+    const btnVoltar = document.getElementById('btn-cancel'); // ID identificado no HTML: id="btn-cancel"
+    if (btnVoltar) {
+      btnVoltar.click();
+    }
+  }
+
+  return { 
+    type: sucesso > 0 ? 'success' : 'error', 
+    message: `Fim! ${sucesso} registrados. ${erro} erros.` 
+  };
+}
+
+// Função que executa EXATAMENTE os passos solicitados
+function passoAPassoAula(data, conteudo, subconteudo) {
+  return new Promise(async (resolve, reject) => {
+    
+    // Elementos principais
+    const elData = document.getElementById('data');
+    const elRadioAvulso = document.querySelector('input[type="radio"][value="avulso"]');
+    const elConteudo = document.getElementById('conteudo');
+    const elSub = document.getElementById('subconteudo');
+    const btnSave = document.getElementById('btn-save');
+
+    if (!elData || !elRadioAvulso || !btnSave) {
+      reject("Elementos do formulário não encontrados.");
+      return;
+    }
+
+    // 0. Limpa alertas visuais anteriores
+    document.querySelectorAll('.alert-success').forEach(a => a.style.display = 'none');
+
+    // PASSO 1: Escreve a Data Correta
+    elData.value = '';
+    elData.value = data;
+    dispararEventosDeMudanca(elData);
+
+    // PASSO 2: Clica na opção Avulso
+    elRadioAvulso.click();
+
+    // PEQUENA PAUSA TÉCNICA (Seus 1000ms solicitados)
+    await new Promise(r => setTimeout(r, 1000));
+
+    // Validação de segurança
+    if (elConteudo.offsetParent === null) {
+      reject("Campos de conteúdo não apareceram após clicar em Avulso.");
+      return;
+    }
+
+    // PASSO 3: Apaga e Escreve Conteúdo
+    elConteudo.value = '';
+    dispararEventosDeMudanca(elConteudo);
+    elConteudo.value = conteudo;
+    dispararEventosDeMudanca(elConteudo);
+
+    // PASSO 4: Apaga e Escreve Subconteúdo
+    elSub.value = '';
+    dispararEventosDeMudanca(elSub);
+    elSub.value = subconteudo;
+    dispararEventosDeMudanca(elSub);
+
+    // PASSO 5: Clica no botão adicionar
+    btnSave.click();
+
+    // PASSO 6: Aguarda mensagem de confirmação (Polling)
+    let tentativas = 0;
+    const checkInterval = setInterval(() => {
+      tentativas++;
+      
+      const sucesso = Array.from(document.querySelectorAll('.alert-success'))
+                           .some(el => el.style.display !== 'none' && el.offsetParent !== null);
+      
+      const loading = document.getElementById('pleaseWaitDialog');
+      const isLoading = loading && loading.style.display !== 'none';
+
+      if (sucesso && !isLoading) {
+        clearInterval(checkInterval);
+        
+        // PASSO 7: Espera 1000ms (Sua pausa final)
+        setTimeout(() => {
+          resolve(true); 
+        }, 1000);
+      } 
+      
+      else if (tentativas > 60) {
+        clearInterval(checkInterval);
+        reject("Timeout esperando confirmação.");
+      }
+
+      const erroSite = document.querySelector('.alert-danger');
+      if (erroSite && erroSite.style.display !== 'none' && erroSite.innerText.length > 5) {
+        clearInterval(checkInterval);
+        reject("Site recusou: " + erroSite.innerText);
+      }
+
+    }, 1000); // Seus 1000ms de intervalo
+  });
 }
