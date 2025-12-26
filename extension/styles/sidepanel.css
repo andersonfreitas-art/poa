@@ -13,14 +13,12 @@
 body {
   background-color: #f4f6f8;
   color: #333;
-  /* Configuração para Rodapé Fixo e Main com Scroll */
   height: 100vh;           
   display: flex;           
   flex-direction: column;  
   overflow: hidden;        
 }
 
-/* O MAIN ocupa o espaço sobrando e rola internamente */
 main {
   padding: 16px;
   flex-grow: 1;            
@@ -45,8 +43,6 @@ header {
   color: white;
   padding: 12px 16px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  
-  /* Flexbox Principal: Logo (Esq) --- Ajuda (Dir) */
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -54,16 +50,14 @@ header {
   z-index: 10;
 }
 
-/* Container da Logo (Imagem + Bloco de Texto) */
 .logo-area {
   display: flex;
-  flex-direction: row; /* GARANTE QUE A IMAGEM FIQUE AO LADO DO TEXTO */
+  flex-direction: row; 
   align-items: center; 
   gap: 12px;           
   text-align: left;
 }
 
-/* A Imagem da Logo */
 .logo-img {
   width: 40px;
   height: 40px;
@@ -72,10 +66,9 @@ header {
   filter: drop-shadow(0 2px 2px rgba(0,0,0,0.2));
 }
 
-/* O Bloco de Texto (Título em cima, Subtítulo embaixo) */
 .logo-text {
   display: flex;
-  flex-direction: column; /* GARANTE QUE O TÍTULO FIQUE SOBRE O SUBTÍTULO */
+  flex-direction: column;
   justify-content: center;
 }
 
@@ -94,7 +87,6 @@ header {
   white-space: nowrap;
 }
 
-/* Botão de Ajuda */
 .header-icon-btn {
   background: none;
   border: none;
@@ -194,10 +186,9 @@ h2 {
 .icon-box.orange { color: #f57c00; background: #fff3e0; }
 .icon-box.blue { color: #1976d2; background: #e3f2fd; }
 .icon-box.purple { color: #7b1fa2; background: #f3e5f5; }
-.icon-box.red { color: #d32f2f; background: #ffebee; }
 
 /* ===================================================================
-   5. FORMULÁRIO E BOTÕES DE AÇÃO
+   5. FORMULÁRIO E BOTÕES DE AÇÃO (GRID + ESTILO ORIGINAL)
    =================================================================== */
 label {
   font-size: 11px;
@@ -218,20 +209,28 @@ textarea {
   font-family: monospace;
 }
 
+/* --- Container em Grid 2 Colunas --- */
+.actions-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 15px;
+}
+
+/* --- Estilo Original do Botão (Preservado) --- */
 .action-btn {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
+  align-items: center; 
   background-color: white;
   border: 1px solid #ccc;
-  padding: 8px;
+  padding: 8px 10px;
   border-radius: 6px;
-  margin-bottom: 8px;
   cursor: pointer;
   font-size: 13px;
   color: #333;
   transition: background 0.2s;
+  text-align: left;
+  min-height: 52px; /* Garante altura para duas linhas de texto */
 }
 
 .action-btn:hover {
@@ -241,9 +240,23 @@ textarea {
 
 .action-btn svg {
   color: #007f4e;
+  margin-right: 8px;
+  flex-shrink: 0;
 }
 
-/* Botões de Clipboard */
+/* --- Texto interno do botão --- */
+.btn-label {
+  line-height: 1.25;
+  font-size: 11px; /* Leve redução para caber "Aulas Avulsas" confortavelmente */
+  font-weight: 500;
+}
+
+/* --- Botão Full Width (SISEDU) --- */
+.full-width {
+  grid-column: span 2;
+}
+
+/* --- Clipboard (Mantido Original) --- */
 .clipboard-actions {
   display: flex;
   gap: 8px;
@@ -280,9 +293,7 @@ textarea {
   color: #666;
 }
 
-/* ===================================================================
-   6. INDICADORES DE STATUS (LEDs)
-   =================================================================== */
+/* --- LED (Ajustado para o novo layout) --- */
 .status-led {
   width: 10px;
   height: 10px;
@@ -293,6 +304,7 @@ textarea {
   flex-shrink: 0;
   transition: all 0.3s ease;
   box-shadow: inset 1px 1px 2px rgba(0,0,0,0.2);
+  margin-right: 8px;
 }
 
 .status-led.active {
@@ -302,22 +314,19 @@ textarea {
 }
 
 /* ===================================================================
-   7. RODAPÉ (Compacto: Texto Esq | Ícones Dir)
+   7. RODAPÉ
    =================================================================== */
 footer {
-  /* Layout Horizontal */
   display: flex;
-  justify-content: space-between; /* Separa os grupos nos extremos */
-  align-items: center;            /* Centraliza verticalmente */
-  
-  padding: 8px 12px;              /* Padding reduzido */
+  justify-content: space-between;
+  align-items: center;            
+  padding: 8px 16px;              
   background-color: #f4f6f8;
   border-top: 1px solid #e0e0e0;
   flex-shrink: 0;
   z-index: 10;
 }
 
-/* Grupo de Texto (Esquerda) */
 .footer-info {
   text-align: left;
 }
@@ -329,28 +338,22 @@ footer {
   margin: 0;
 }
 
-.footer-info strong {
-  color: #555;
-}
-
-/* Grupo de Ícones (Direita) */
 .social-mini {
   display: flex;
-  gap: 8px; /* Espaço entre os ícones */
+  gap: 8px;
 }
 
-/* Botões Miniatura */
 .mini-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 26px;        /* Tamanho reduzido */
+  width: 26px;        
   height: 26px;
-  border-radius: 4px; /* Mais quadrado (estilo app) ou 50% para redondo */
+  border-radius: 4px; 
   color: #999;
-  background-color: transparent; /* Sem fundo por padrão */
+  background-color: transparent; 
   transition: all 0.2s ease;
-  border: 1px solid transparent; /* Reserva espaço para borda */
+  border: 1px solid transparent; 
 }
 
 .mini-btn svg {
@@ -358,15 +361,13 @@ footer {
   height: 16px;
 }
 
-/* Hover Instagram */
 .mini-btn.instagram:hover {
   color: #d6249f;
   background-color: #fce4ec;
 }
 
-/* Hover: Star (Avaliação) */
 .mini-btn.star:hover {
-  color: #fbc02d; /* Amarelo Ouro */
+  color: #fbc02d; 
   background-color: #fffde7;
   border-color: #fbc02d;
 }
@@ -413,7 +414,7 @@ footer {
 .toast.info { background-color: #2c3e50; border-left: 4px solid #1a252f; }
 
 /* ===================================================================
-   9. CUSTOMIZAÇÃO DO DRIVER.JS
+   9. DRIVER.JS OVERRIDES
    =================================================================== */
 .driver-popover {
   max-width: 92% !important;
@@ -428,15 +429,7 @@ footer {
   border: none !important;
 }
 
-.driver-popover-poa .driver-popover-footer .driver-popover-btn-group .driver-popover-done-btn:hover {
-  background-color: #004d2f !important;
-}
-
 .driver-popover-poa .driver-popover-footer .driver-popover-btn-group .driver-popover-next-btn {
   color: #333 !important;
   border: 1px solid #ccc !important;
-}
-
-.driver-popover-poa .driver-popover-footer .driver-popover-btn-group .driver-popover-next-btn:hover {
-  background-color: #f0f0f0 !important;
 }
