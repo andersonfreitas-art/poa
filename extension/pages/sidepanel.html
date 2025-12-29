@@ -129,6 +129,7 @@
             <polyline points="10 9 9 9 8 9"></polyline>
           </svg>
           <span class="btn-label">Lançar<br>Notas</span>
+          <span class="help-trigger" data-help="notas">?</span>
         </button>
 
         <button id="btn-lancar-frequencia" class="action-btn grid-item" aria-label="Lançar Frequência">
@@ -139,6 +140,7 @@
             <polyline points="16 11 18 13 22 9"></polyline>
           </svg>
           <span class="btn-label">Lançar<br>Faltas</span>
+          <span class="help-trigger" data-help="frequencia">?</span>
         </button>
         
         <button id="btn-lancar-aulas" class="action-btn grid-item" aria-label="Registrar Aulas Avulsas">
@@ -148,6 +150,7 @@
             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
           </svg>
           <span class="btn-label">Registrar Aulas Avulsas</span>
+          <span class="help-trigger" data-help="aulas">?</span>
         </button>
 
         <button id="btn-verificar-pendencias" class="action-btn grid-item" aria-label="Verificar Pendências">
@@ -157,6 +160,7 @@
             <polyline points="12 6 12 12 16 14"></polyline>
           </svg>
           <span class="btn-label">Checar<br>Pendências</span>
+          <span class="help-trigger" data-help="pendencias">?</span>
         </button>
 
         <button id="" class="action-btn action-btn-disabled grid-item" aria-label="Coletar Registros de Aula" disabled>
@@ -167,7 +171,7 @@
             <line x1="12" y1="15" x2="12" y2="3"></line>
           </svg>
           <span class="btn-label">Coletar Registros de Aula <small style="color:#666; font-weight:normal">(EM BREVE)</small></span>
-        </button>
+          </button>
         
         <button id="btn-lancar-gabaritos-sisedu" class="action-btn grid-item" aria-label="Lançar Gabaritos SISEDU">
           <span class="status-led" id="led-sisedu"></span>
@@ -178,7 +182,8 @@
             <line x1="16" y1="17" x2="8" y2="17"></line>
             <polyline points="10 9 9 9 8 9"></polyline>
           </svg>
-          <span class="btn-label">Lançar Gabaritos SISEDU</span>
+          <span class="btn-label">Lançamentos SISEDU</span>
+          <span class="help-trigger" data-help="sisedu">?</span>
         </button>
 
         <button id="" class="action-btn action-btn-disabled full-width" aria-label="Gabarito Fácil (EM BREVE)" disabled>
@@ -220,6 +225,8 @@
   <div id="toast-container"></div>
   
   <script src="../libs/driver.js.js"></script>
+  <script src="../libs/popper.min.js"></script>
+  <script src="../libs/tippy-bundle.umd.js"></script>
   <script src="../scripts/sidepanel.js"></script>
 </body>
 </html>

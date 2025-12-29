@@ -1,13 +1,12 @@
-/* scripts/sidepanel.css */
-
 /* ===================================================================
-   1. RESET E GLOBAIS (LAYOUT APP SHELL)
+   1. RESET E GLOBAIS (APP SHELL)
    =================================================================== */
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
   font-family: 'Roboto', 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
 body {
@@ -16,7 +15,7 @@ body {
   height: 100vh;           
   display: flex;           
   flex-direction: column;  
-  overflow: hidden;        
+  overflow: hidden; /* O scroll é gerenciado pelo main */
 }
 
 main {
@@ -27,6 +26,7 @@ main {
   scrollbar-color: #ccc transparent;
 }
 
+/* Scrollbar Customizada (Webkit) */
 main::-webkit-scrollbar {
   width: 6px;
 }
@@ -34,9 +34,12 @@ main::-webkit-scrollbar-thumb {
   background-color: #ccc;
   border-radius: 4px;
 }
+main::-webkit-scrollbar-track {
+  background: transparent;
+}
 
 /* ===================================================================
-   2. CABEÇALHO (Layout Flex Híbrido)
+   2. CABEÇALHO (HEADER)
    =================================================================== */
 header {
   background: linear-gradient(135deg, #007f4e 0%, #004d2f 100%);
@@ -47,7 +50,7 @@ header {
   justify-content: space-between;
   align-items: center;
   flex-shrink: 0;
-  z-index: 10;
+  z-index: 20;
 }
 
 .logo-area {
@@ -55,7 +58,6 @@ header {
   flex-direction: row; 
   align-items: center; 
   gap: 12px;           
-  text-align: left;
 }
 
 .logo-img {
@@ -114,7 +116,7 @@ header {
 }
 
 /* ===================================================================
-   3. TIPOGRAFIA E SEPARADORES
+   3. TIPOGRAFIA E ELEMENTOS DE UI
    =================================================================== */
 h2 {
   font-size: 14px;
@@ -133,11 +135,11 @@ h2 {
 }
 
 /* ===================================================================
-   4. MENU DE ACESSO RÁPIDO (GRID)
+   4. MENU DE ACESSO RÁPIDO (GRID 4 COLUNAS)
    =================================================================== */
 .grid-menu {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr 1fr;
+  grid-template-columns: repeat(4, 1fr);
   gap: 8px;
 }
 
@@ -182,13 +184,14 @@ h2 {
   height: 20px;
 }
 
+/* Cores dos ícones */
 .icon-box.green { color: #007f4e; background: #e8f5e9; }
 .icon-box.orange { color: #f57c00; background: #fff3e0; }
 .icon-box.blue { color: #1976d2; background: #e3f2fd; }
 .icon-box.purple { color: #7b1fa2; background: #f3e5f5; }
 
 /* ===================================================================
-   5. FORMULÁRIO E BOTÕES DE AÇÃO (GRID + ESTILO ORIGINAL)
+   5. ÁREA DE TRANSFERÊNCIA (INPUTS)
    =================================================================== */
 label {
   font-size: 11px;
@@ -206,85 +209,15 @@ textarea {
   font-size: 12px;
   resize: vertical;
   margin-bottom: 10px;
-  font-family: monospace;
+  font-family: monospace; /* Fonte monoespaçada ajuda a ver colunas */
 }
 
-/* --- Container em Grid 2 Colunas --- */
-.actions-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  margin-bottom: 15px;
+textarea:focus {
+  outline: none;
+  border-color: #007f4e;
+  box-shadow: 0 0 0 2px rgba(0, 127, 78, 0.1);
 }
 
-/* --- ESTILOS PARA BOTÕES "EM BREVE" / DESABILITADOS --- */
-.action-btn-disabled {
-  background-color: #f8f9fa !important; /* Fundo cinza bem claro */
-  border-color: #e0e0e0 !important;
-  color: #999 !important;               /* Texto cinza */
-  cursor: not-allowed !important;       /* Cursor de "proibido" */
-  opacity: 0.8;
-  box-shadow: none !important;          /* Remove a sombra */
-  pointer-events: none;                 /* Garante que nada é clicável */
-}
-
-/* Remove a animação de clique/hover */
-.action-btn-disabled:hover,
-.action-btn-disabled:active {
-  transform: none !important;
-  background-color: #f8f9fa !important;
-}
-
-/* Deixa o ícone SVG cinza também */
-.action-btn-disabled svg {
-  stroke: #aaa !important;
-}
-
-/* Opcional: Esconder o LED nesses botões, já que não funcionam */
-.action-btn-disabled .status-led {
-  display: none;
-}
-
-/* --- Estilo Original do Botão (Preservado) --- */
-.action-btn {
-  display: flex;
-  align-items: center; 
-  background-color: white;
-  border: 1px solid #ccc;
-  padding: 8px 10px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 13px;
-  color: #333;
-  transition: background 0.2s;
-  text-align: left;
-  min-height: 48px; /* Garante altura para duas linhas de texto */
-}
-
-.action-btn:hover {
-  background-color: #f0f0f0;
-  border-color: #bbb;
-}
-
-.action-btn svg {
-  color: #007f4e;
-  margin-right: 8px;
-  flex-shrink: 0;
-}
-
-/* --- Texto interno do botão --- */
-.btn-label {
-  line-height: 1.25;
-  font-size: 11px; /* Leve redução para caber "Aulas Avulsas" confortavelmente */
-  font-weight: 400;
-}
-
-/* --- Botão Full Width (SISEDU) --- */
-.full-width {
-  grid-column: span 2;
-}
-
-/* --- Clipboard (Mantido Original) --- */
 .clipboard-actions {
   display: flex;
   gap: 8px;
@@ -321,7 +254,82 @@ textarea {
   color: #666;
 }
 
-/* --- LED (Ajustado para o novo layout) --- */
+/* ===================================================================
+   6. BOTÕES DE AÇÃO (GRID 2 COLUNAS)
+   =================================================================== */
+.actions-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 15px;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center; 
+  background-color: white;
+  border: 1px solid #ccc; /* Borda padrão cinza */
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #333;
+  transition: all 0.2s ease; /* Transição suave */
+  text-align: left;
+  min-height: 48px;
+  
+  /* IMPORTANTE para o ícone de ajuda */
+  position: relative; 
+  overflow: hidden; 
+}
+
+/* HOVER DO BOTÃO: Borda Verde e Sombra */
+.action-btn:hover {
+  background-color: #fff; /* Mantém fundo branco para destacar a borda */
+  border-color: #007f4e;  /* Borda Verde POA */
+  box-shadow: 0 4px 8px rgba(0, 127, 78, 0.15); /* Sombra esverdeada suave */
+  transform: translateY(-1px); /* Leve elevação */
+}
+
+.action-btn svg {
+  color: #007f4e;
+  margin-right: 8px;
+  flex-shrink: 0;
+}
+
+.btn-label {
+  line-height: 1.25;
+  font-size: 11px;
+  font-weight: 400;
+  padding-right: 15px; /* Espaço para não encostar na dobra */
+}
+
+.full-width {
+  grid-column: span 2;
+}
+
+/* --- Estado: Desabilitado / Em Breve --- */
+.action-btn-disabled {
+  background-color: #f8f9fa !important;
+  border-color: #e0e0e0 !important;
+  color: #999 !important;
+  cursor: not-allowed !important;
+  opacity: 0.8;
+  box-shadow: none !important;
+  pointer-events: none; /* Bloqueia cliques */
+  transform: none !important;
+}
+
+.action-btn-disabled svg {
+  stroke: #aaa !important;
+  color: #aaa !important;
+}
+
+.action-btn-disabled .status-led {
+  display: none;
+}
+
+/* --- Estado: LEDs Indicadores --- */
 .status-led {
   width: 10px;
   height: 10px;
@@ -342,7 +350,117 @@ textarea {
 }
 
 /* ===================================================================
-   7. RODAPÉ
+   7. ÍCONES E BALÕES DE AJUDA (TIPPY) - ESTILO "ORELHA"
+   =================================================================== */
+
+/* O triângulo no canto inferior direito */
+.help-trigger {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 28px;  
+  height: 28px;
+  
+  /* Cria o formato de triângulo */
+  clip-path: polygon(100% 0, 0% 100%, 100% 100%);
+  
+  /* Cores (Estado Normal: Verso do papel) */
+  background-color: #e0e0e0; 
+  color: #777;               
+  
+  /* Alinhamento do '?' */
+  display: flex;
+  align-items: flex-end;    
+  justify-content: flex-end;
+  padding-right: 5px;       
+  padding-bottom: 2px;      
+  
+  font-size: 13px;
+  font-weight: 700;
+  cursor: help;
+  z-index: 10;
+  
+  transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+  transform-origin: bottom right; 
+}
+
+/* Hover na orelha: Expande e fica verde */
+.help-trigger:hover {
+  background-color: #007f4e; /* Verde POA */
+  color: white;
+  width: 40px;  
+  height: 40px;
+  padding-right: 8px; 
+  padding-bottom: 5px;
+}
+
+/* Hover no botão: Destaca levemente a orelha para mostrar que existe */
+.action-btn:hover .help-trigger {
+  background-color: #cfd8dc; 
+}
+/* Mas se o mouse estiver NA dobra, o verde vence */
+.action-btn:hover .help-trigger:hover {
+  background-color: #007f4e;
+}
+
+/* -- Conteúdo Interno do Tooltip -- */
+.poa-tooltip-content {
+  text-align: left;
+  padding: 4px;
+}
+
+.poa-tooltip-title {
+  display: block;
+  font-family: 'Roboto', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  margin-bottom: 4px;
+  color: #fff;
+  border-bottom: 1px solid rgba(255,255,255,0.3);
+  padding-bottom: 4px;
+}
+
+.poa-tooltip-text {
+  display: block;
+  font-family: 'Roboto', sans-serif;
+  font-size: 12px;
+  margin-bottom: 8px;
+  color: #f1f8e9; /* Branco levemente esverdeado/off-white */
+  line-height: 1.4;
+}
+
+.poa-tooltip-gif {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+  border: 1px solid rgba(255,255,255,0.3);
+  background: #000;
+  margin-top: 4px;
+}
+
+/* -- Tippy Theme Overrides (VERDE POA) -- */
+.tippy-box {
+  background-color: #007f4e; /* Fundo Verde POA */
+  color: white;
+  box-shadow: 0 8px 16px rgba(0, 77, 47, 0.3); /* Sombra escura esverdeada */
+  font-family: 'Roboto', sans-serif; /* Força a fonte */
+}
+
+/* A cor da setinha tem que bater com o fundo */
+.tippy-arrow {
+  color: #007f4e; 
+}
+
+/* Animação Scale (Embutida) */
+.tippy-box[data-animation=scale][data-state=hidden] {
+  opacity: 0;
+  transform: scale(.5);
+}
+
+/* ===================================================================
+   8. RODAPÉ (FOOTER)
    =================================================================== */
 footer {
   display: flex;
@@ -401,7 +519,7 @@ footer {
 }
 
 /* ===================================================================
-   8. TOAST NOTIFICATIONS
+   9. NOTIFICAÇÕES (TOAST)
    =================================================================== */
 #toast-container {
   position: fixed;
@@ -440,9 +558,10 @@ footer {
 .toast.success { background-color: #007f4e; border-left: 4px solid #004d2f; }
 .toast.error { background-color: #d32f2f; border-left: 4px solid #b71c1c; }
 .toast.info { background-color: #2c3e50; border-left: 4px solid #1a252f; }
+.toast.warning { background-color: #f57c00; border-left: 4px solid #e65100; }
 
 /* ===================================================================
-   9. DRIVER.JS OVERRIDES
+   10. DRIVER.JS (TUTORIAL) - OVERRIDES
    =================================================================== */
 .driver-popover {
   max-width: 92% !important;

@@ -4,8 +4,19 @@
  * POA - Professor Online Automático
  * Script do Painel Lateral
  * Versão: 1.3
+ * * Estrutura:
+ * 1. Constantes e Configurações (Dados estáticos)
+ * 2. Inicialização (Event Listeners)
+ * 3. Módulos de Funcionalidade (Lógica específica)
+ * 4. Comunicação e Core (Lógica de sistema)
+ * 5. Utilitários (Helpers)
  */
 
+// ===================================================================
+// 1. CONSTANTES E CONFIGURAÇÕES
+// ===================================================================
+
+/** Regras de validação de URL para cada ação */
 const REGRAS_CONTEXTO = {
   'notas': 'avaliacao_nota',
   'frequencia': 'frequencia_chamada',
@@ -14,16 +25,124 @@ const REGRAS_CONTEXTO = {
   'sisedu': 'cadastrar_gabarito'
 };
 
+/** Conteúdo dos balões de ajuda (Tooltips) */
+const CONTEUDO_AJUDA = {
+  'notas': {
+    titulo: 'Formato: Notas',
+    texto: 'Copie duas colunas da planilha: <b>Matrícula</b> e <b>Nota</b>. Elas devem estar lado a lado.',
+    gif: '../images/gifs/tutorial-notas.gif'
+  },
+  'frequencia': {
+    titulo: 'Formato: Faltas',
+    texto: 'Copie apenas a coluna de <b>Matrículas</b> dos alunos faltosos.',
+    gif: '../images/gifs/tutorial-frequencia.gif'
+  },
+  'aulas': {
+    titulo: 'Formato: Aulas',
+    texto: 'Copie 3 colunas: <b>Data</b>, <b>Conteúdo</b> e <b>Detalhamento</b>.',
+    gif: '../images/gifs/tutorial-aulas.gif'
+  },
+  'pendencias': {
+    titulo: 'Verificar Pendências',
+    texto: 'A ferramenta copiará automaticamente as datas pendentes encontradas na tela.',
+    gif: '' 
+  },
+  'sisedu': {
+    titulo: 'Gabarito SISEDU',
+    texto: 'Copie a sequência de letras (ex: A B C D...). O sistema identifica a questão automaticamente.',
+    gif: '../images/gifs/tutorial-sisedu.gif'
+  }
+};
+
+/** Passos do Tutorial Guiado (Driver.js) */
+const PASSOS_TUTORIAL = [
+  { 
+    element: '#header-logo', 
+    popover: { 
+      title: 'Bem-vindo ao POA!', 
+      description: 'Agora que sua extensão está instalada, vamos ver como funciona!', 
+      side: 'bottom', align: 'center' 
+    } 
+  },
+  { 
+    element: '#acesso-rapido-drive-poa', 
+    popover: { 
+      title: 'Use nossas planilhas', 
+      description: 'Se sua escola nunca usou o POA, baixe nossas planilhas modelo para facilitar o uso com nossa extensão.<br><br> Se já usa, ótimo! Continue com suas próprias planilhas.', 
+      side: 'bottom', align: 'center' 
+    } 
+  },
+  { 
+    element: '#led-notas', 
+    popover: { 
+      title: 'Fique de olho nos LEDs!', 
+      description: 'Nossos LEDs indicam se você está na página correta para cada ação (lançar notas, frequência, etc).<br><br>🟢 LED verde = tudo certo para inserir os dados.<br>⚪ LED cinza = página não compatível com o POA.', 
+      side: 'bottom' 
+    } 
+  },
+  { 
+    element: '#transferencia-container', 
+    popover: { 
+      title: '1. Copie e Cole', 
+      description: 'Copie os dados de uma planilha POA e cole dentro desta área.<br><br>Você pode usar os botões para facilitar o processo ou os atalhos Ctrl+C / Ctrl+V.', 
+      side: 'bottom' 
+    } 
+  },
+  { 
+    element: '#acoes-container', 
+    popover: { 
+      title: '2. Execute a Ação', 
+      description: 'Com os dados colados na Área de Transferência e o LED verde, clique na ação desejada para que o preenchimento automático seja realizado.', 
+      side: 'top' 
+    } 
+  },
+  { 
+    element: '#social-container', 
+    popover: {
+      title: 'Contribua', 
+      description: 'Gostou do POA? Contriua com ideias e sugestões de ferramentas e melhorias!<br><br>Seu feedback é muito importante para nós.', 
+      side: 'top' 
+    } 
+  },
+  { 
+    element: '#btn-ajuda', 
+    popover: { 
+      title: 'Ajuda', 
+      description: 'Clique neste botão sempre que precisar rever este tutorial ou tiver dúvidas sobre o funcionamento da nossa extensão.', 
+      side: 'left' 
+    } 
+  }
+];
+
+// ===================================================================
+// 2. INICIALIZAÇÃO (MAIN)
+// ===================================================================
+
 document.addEventListener('DOMContentLoaded', () => {
   const textArea = document.getElementById('data-area');
 
-  // ===================================================================
-  // 1. GERENCIAMENTO DA ÁREA DE TRANSFERÊNCIA
-  // ===================================================================
+  // Inicializa os módulos
+  configurarAreaTransferencia(textArea);
+  configurarMonitoramentoLeds();
+  configurarBotoesAcao(textArea);
+  configurarTutorial();     
+  configurarTooltips();
+});
 
+// ===================================================================
+// 3. MÓDULOS DE FUNCIONALIDADE
+// ===================================================================
+
+/**
+ * Módulo: Gerenciamento da Área de Transferência (Copiar/Colar/Limpar)
+ */
+function configurarAreaTransferencia(textArea) {
   // Botão COPIAR
   configurarBotao('btn-copiar', () => {
-    if (!textArea.value) { mostrarToast("A área de texto está vazia.", "info"); return; }
+    if (!textArea.value) { 
+      mostrarToast("A área de texto está vazia.", "info"); 
+      return; 
+    }
     copiarParaAreaTransferencia(textArea.value, textArea);
     mostrarToast("Conteúdo copiado!", "success");
   });
@@ -54,23 +173,13 @@ document.addEventListener('DOMContentLoaded', () => {
     textArea.focus();
     mostrarToast("Área de texto limpa.", "info");
   });
+}
 
-
-  // ===================================================================
-  // 2. MONITORAMENTO DE STATUS (LEDs)
-  // ===================================================================
-  atualizarStatusLeds();
+/**
+ * Módulo: Botões de Ação Principal (Notas, Frequência, etc.)
+ */
+function configurarBotoesAcao(textArea) {
   
-  chrome.tabs.onActivated.addListener(() => atualizarStatusLeds());
-  chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-    if (changeInfo.url || changeInfo.status === 'complete') atualizarStatusLeds(); 
-  });
-
-
-  // ===================================================================
-  // 3. BOTÕES DE AÇÃO PRINCIPAL
-  // ===================================================================
-
   // A. Lançar Notas
   configurarBotao('btn-lancar-notas', async () => {
     if (!await validarPaginaCorreta('notas')) return;
@@ -84,8 +193,6 @@ document.addEventListener('DOMContentLoaded', () => {
     mostrarToast("Processando notas...", "info");
     const resposta = await enviarComando('preencher_notas', dados);
     processarResposta(resposta);
-    
-    // Limpa a área após sucesso (Notas geralmente é 1x por turma)
     if (verificarSucesso(resposta)) textArea.value = ''; 
   });
 
@@ -102,8 +209,6 @@ document.addEventListener('DOMContentLoaded', () => {
     mostrarToast("Processando frequência...", "info");
     const resposta = await enviarComando('preencher_frequencia', dados);
     processarResposta(resposta);
-    
-    // NÃO LIMPA a área (permite lançar múltiplos dias)
   });
 
   // C. Verificar Pendências
@@ -146,8 +251,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     mostrarToast("Iniciando lançamento em lote...", "info");
-    
-    // Feedback visual imediato que o processo começou
     const btn = document.getElementById('btn-lancar-aulas');
     const textoOriginal = btn.innerHTML;
     btn.innerHTML = '⏳ Processando...';
@@ -155,18 +258,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const resposta = await enviarComando('preencher_aulas', dados);
     
-    // Restaura botão
     btn.innerHTML = textoOriginal;
     btn.disabled = false;
-
     processarResposta(resposta);
   });
+}
 
-
-  // ===================================================================
-  // 4. MÓDULO DE TUTORIAL (DRIVER.JS)
-  // ===================================================================
+/**
+ * Módulo: Monitoramento de LEDs (Status da Página)
+ */
+function configurarMonitoramentoLeds() {
+  atualizarStatusLeds();
   
+  chrome.tabs.onActivated.addListener(() => atualizarStatusLeds());
+  chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+    if (changeInfo.url || changeInfo.status === 'complete') atualizarStatusLeds(); 
+  });
+}
+
+/**
+ * Módulo: Tutorial (Driver.js)
+ */
+function configurarTutorial() {
   const driver = window.driver.js.driver;
   const driverObj = driver({
     showProgress: true,
@@ -182,67 +295,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
   
-  const passosTour = [
-    { 
-      element: '#header-logo', 
-      popover: { 
-        title: 'Bem-vindo ao POA!', 
-        description: 'Agora que sua extensão está instalada, vamos ver como funciona!', 
-        side: 'bottom', align: 'center' 
-      } 
-    },
-    { 
-      element: '#acesso-rapido-drive-poa', 
-      popover: { 
-        title: 'Use nossas planilhas', 
-        description: 'Se sua escola nunca usou o POA, baixe nossas planilhas modelo para facilitar o uso com nossa extensão.<br><br> Se já usa, ótimo! Continue com suas próprias planilhas.', 
-        side: 'bottom', align: 'center' 
-      } 
-    },
-    { 
-      element: '#led-notas', 
-      popover: { 
-        title: 'Fique de olho nos LEDs!', 
-        description: 'Nossos LEDs indicam se você está na página correta para cada ação (lançar notas, frequência, etc).<br><br>🟢 LED verde = tudo certo para inserir os dados.<br>⚪ LED cinza = página não compatível com o POA.', 
-        side: 'bottom' 
-      } 
-    },
-    { 
-      element: '#transferencia-container', 
-      popover: { 
-        title: '1. Copie e Cole', 
-        description: 'Copie os dados de uma planilha POA e cole dentro desta área.<br><br>Você pode usar os botões para facilitar o processo ou os atalhos Ctrl+C / Ctrl+V.', 
-        side: 'bottom' 
-      } 
-    },
-    { 
-      element: '#acoes-container', 
-      popover: { 
-        title: '2. Execute a Ação', 
-        description: 'Com os dados colados na Área de Transferência e o LED verde, clique na ação desejada para que o preenchimento automático seja realizado.', 
-        side: 'top' 
-      } 
-    },
-    { 
-      element: '#social-container', 
-      popover: {
-        title: 'Contribua', 
-        description: 'Gostou do POA? Contriua com ideias e sugestões de ferramentas e melhorias!<br><br>Seu feedback é muito importante para nós.', 
-        side: 'top' 
-      } 
-    },
-    { 
-      element: '#btn-ajuda', 
-      popover: { 
-        title: 'Ajuda', 
-        description: 'Clique neste botão sempre que precisar rever este tutorial ou tiver dúvidas sobre o funcionamento da nossa extensão.', 
-        side: 'left' 
-      } 
-    }
-  ];
-
   function iniciarTutorial() {
-    const stepsValidos = passosTour.filter(passo => document.querySelector(passo.element));
+    // Agora usa a constante global PASSOS_TUTORIAL
+    const stepsValidos = PASSOS_TUTORIAL.filter(passo => document.querySelector(passo.element));
+    
     if (stepsValidos.length > 0) {
       driverObj.setSteps(stepsValidos);
       driverObj.drive();
@@ -260,12 +316,69 @@ document.addEventListener('DOMContentLoaded', () => {
     e.preventDefault();
     iniciarTutorial();
   });
+}
 
-});
+/**
+ * Módulo: Tooltips de Ajuda (Tippy.js)
+ */
+function configurarTooltips() {
+  if (!window.tippy) {
+    console.warn("Tippy.js não foi carregado.");
+    return;
+  }
+
+  tippy('.help-trigger', {
+    content(reference) {
+      const id = reference.getAttribute('data-help');
+      const dados = CONTEUDO_AJUDA[id]; // Usa a constante global
+      
+      if (!dados) return 'Ajuda não encontrada.';
+
+      const htmlGif = dados.gif ? `<img src="${dados.gif}" class="poa-tooltip-gif" alt="Tutorial" loading="lazy">` : '';
+
+      return `
+        <div class="poa-tooltip-content">
+          <span class="poa-tooltip-title">${dados.titulo}</span>
+          <span class="poa-tooltip-text">${dados.texto}</span>
+          ${htmlGif}
+        </div>
+      `;
+    },
+    allowHTML: true,
+    placement: 'top',       
+    maxWidth: 260,          
+    
+    popperOptions: {        
+      modifiers: [
+        {
+          name: 'preventOverflow', 
+          options: {
+            boundary: 'viewport',  
+            padding: 8,            
+          },
+        },
+        {
+          name: 'flip',            
+          options: {
+            fallbackPlacements: ['bottom'],
+          },
+        },
+      ],
+    },
+    
+    arrow: true,
+    theme: 'material',
+    animation: 'scale',
+    trigger: 'mouseenter focus',
+    interactive: true,
+    delay: [300, null],
+    appendTo: document.body
+  });
+}
 
 
 // ===================================================================
-// LÓGICA DE VALIDAÇÃO E COMUNICAÇÃO
+// 4. LÓGICA CORE E COMUNICAÇÃO
 // ===================================================================
 
 async function validarPaginaCorreta(tipoAcao) {
@@ -278,6 +391,11 @@ async function validarPaginaCorreta(tipoAcao) {
     }
 
     const trechoObrigatorio = REGRAS_CONTEXTO[tipoAcao];
+    if (!trechoObrigatorio) {
+        console.error("Regra não definida para:", tipoAcao);
+        return false;
+    }
+
     if (!tab.url.includes(trechoObrigatorio)) {
       mostrarToast("Recurso não disponível nesta página.", "error");
       return false;
@@ -307,14 +425,23 @@ async function atualizarStatusLeds() {
     if (!tab || !tab.url) return;
     
     const url = tab.url;
-    toggleLed('led-notas', url.includes(REGRAS_CONTEXTO['notas']));
-    toggleLed('led-frequencia', url.includes(REGRAS_CONTEXTO['frequencia']));
-    toggleLed('led-pendencias', url.includes(REGRAS_CONTEXTO['pendencias']));
-    toggleLed('led-aulas', url.includes(REGRAS_CONTEXTO['aulas']));
-    toggleLed('led-sisedu', url.includes(REGRAS_CONTEXTO['sisedu']));
+    // Percorre as regras e ativa o LED correspondente
+    Object.keys(REGRAS_CONTEXTO).forEach(chave => {
+        toggleLed(`led-${chave}`, url.includes(REGRAS_CONTEXTO[chave]));
+    });
+
   } catch (error) {
     console.log("Erro ao atualizar LEDs:", error);
   }
+}
+
+// ===================================================================
+// 5. UTILITÁRIOS VISUAIS E HELPERS
+// ===================================================================
+
+function configurarBotao(id, callback) {
+  const btn = document.getElementById(id);
+  if (btn) btn.addEventListener('click', callback);
 }
 
 function toggleLed(id, ativo) {
@@ -323,15 +450,6 @@ function toggleLed(id, ativo) {
     if (ativo) led.classList.add('active');
     else led.classList.remove('active');
   }
-}
-
-// ===================================================================
-// UTILITÁRIOS VISUAIS
-// ===================================================================
-
-function configurarBotao(id, callback) {
-  const btn = document.getElementById(id);
-  if (btn) btn.addEventListener('click', callback);
 }
 
 function copiarParaAreaTransferencia(texto, elementoInput) {
