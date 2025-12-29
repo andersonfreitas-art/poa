@@ -147,10 +147,10 @@
             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
           </svg>
-          <span class="btn-label">Registrar<br>Aulas Avulsas</span>
+          <span class="btn-label">Registrar Aulas Avulsas</span>
         </button>
 
-        <button id="btn-verificar-pendencias" class="action-btn grid-item secondary" aria-label="Verificar Pendências">
+        <button id="btn-verificar-pendencias" class="action-btn grid-item" aria-label="Verificar Pendências">
           <span class="status-led" id="led-pendencias"></span>
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="10"></circle>
@@ -159,7 +159,17 @@
           <span class="btn-label">Checar<br>Pendências</span>
         </button>
 
-        <button id="btn-lancar-gabaritos-sisedu" class="action-btn full-width" aria-label="Lançar Gabaritos SISEDU">
+        <button id="" class="action-btn action-btn-disabled grid-item" aria-label="Coletar Registros de Aula" disabled>
+          <span class="status-led" id="led-coleta"></span>
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          <span class="btn-label">Coletar Registros de Aula <small style="color:#666; font-weight:normal">(EM BREVE)</small></span>
+        </button>
+        
+        <button id="btn-lancar-gabaritos-sisedu" class="action-btn grid-item" aria-label="Lançar Gabaritos SISEDU">
           <span class="status-led" id="led-sisedu"></span>
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
@@ -170,13 +180,23 @@
           </svg>
           <span class="btn-label">Lançar Gabaritos SISEDU</span>
         </button>
+
+        <button id="" class="action-btn action-btn-disabled full-width" aria-label="Gabarito Fácil (EM BREVE)" disabled>
+          <span class="status-led" id="led-sisedu"></span>
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+          </svg>
+          <span class="btn-label">Gabarito Fácil <small style="color:#666; font-weight:normal">(EM BREVE)</small></span>
+        </button>
       </div>
     </section>
   </main>
 
   <footer id="rodape-container">
     <div class="footer-info">
-      <p>POA v1.3 &copy; 2025 - Anderson Freitas</p>
+      <p>POA v1.3 &copy; 2025 - Desenvolvido por Anderson Freitas</p>
       <p>Este projeto não possui vínculo oficial com a SEDUC/CE.</p>
     </div>
 

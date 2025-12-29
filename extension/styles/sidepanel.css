@@ -217,6 +217,34 @@ textarea {
   margin-bottom: 15px;
 }
 
+/* --- ESTILOS PARA BOTÕES "EM BREVE" / DESABILITADOS --- */
+.action-btn-disabled {
+  background-color: #f8f9fa !important; /* Fundo cinza bem claro */
+  border-color: #e0e0e0 !important;
+  color: #999 !important;               /* Texto cinza */
+  cursor: not-allowed !important;       /* Cursor de "proibido" */
+  opacity: 0.8;
+  box-shadow: none !important;          /* Remove a sombra */
+  pointer-events: none;                 /* Garante que nada é clicável */
+}
+
+/* Remove a animação de clique/hover */
+.action-btn-disabled:hover,
+.action-btn-disabled:active {
+  transform: none !important;
+  background-color: #f8f9fa !important;
+}
+
+/* Deixa o ícone SVG cinza também */
+.action-btn-disabled svg {
+  stroke: #aaa !important;
+}
+
+/* Opcional: Esconder o LED nesses botões, já que não funcionam */
+.action-btn-disabled .status-led {
+  display: none;
+}
+
 /* --- Estilo Original do Botão (Preservado) --- */
 .action-btn {
   display: flex;
@@ -230,7 +258,7 @@ textarea {
   color: #333;
   transition: background 0.2s;
   text-align: left;
-  min-height: 52px; /* Garante altura para duas linhas de texto */
+  min-height: 48px; /* Garante altura para duas linhas de texto */
 }
 
 .action-btn:hover {
@@ -248,7 +276,7 @@ textarea {
 .btn-label {
   line-height: 1.25;
   font-size: 11px; /* Leve redução para caber "Aulas Avulsas" confortavelmente */
-  font-weight: 500;
+  font-weight: 400;
 }
 
 /* --- Botão Full Width (SISEDU) --- */
